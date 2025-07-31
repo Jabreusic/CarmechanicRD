@@ -2427,7 +2427,61 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
 
         win.document.write(tempDiv.innerHTML);
 
-        win.document.write(`</body></html>`);
+        win.document.write(`
+<h3>Trabajos Activos</h3>
+<table id="tablaTrabajosActivos">
+  <thead>
+    <tr>
+      <th>Cliente</th>
+      <th>Vehículo</th>
+      <th>Trabajo</th>
+      <th>Estado</th>
+      <th>Entrega</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+</body>
+<script>
+let trabajosActivos = JSON.parse(localStorage.getItem("trabajosActivos")) || [];
+
+function guardarTrabajo() {
+  const cliente = document.getElementById("nombreCliente").value;
+  const vehiculo = document.getElementById("marcaVehiculo").value + " " + document.getElementById("modeloVehiculo").value;
+  const trabajo = document.getElementById("trabajoProceso").value || document.getElementById("trabajoRealizado").value;
+  const estado = document.getElementById("estatusTrabajo").value;
+  const entrega = document.getElementById("fechaEntregaEstimada").value;
+
+  const nuevo = { cliente, vehiculo, trabajo, estado, entrega };
+
+  trabajosActivos.push(nuevo);
+  localStorage.setItem("trabajosActivos", JSON.stringify(trabajosActivos));
+  mostrarTrabajos();
+}
+
+function mostrarTrabajos() {
+  const tabla = document.querySelector("#tablaTrabajosActivos tbody");
+  if (!tabla) return;
+  tabla.innerHTML = "";
+  trabajosActivos.forEach(t => {
+    tabla.innerHTML += `<tr>
+      <td>${t.cliente}</td>
+      <td>${t.vehiculo}</td>
+      <td>${t.trabajo}</td>
+      <td>${t.estado}</td>
+      <td>${t.entrega}</td>
+    </tr>`;
+  });
+}
+
+window.onload = () => {
+  mostrarTrabajos();
+}
+</script>
+
+</html>`);
         win.document.close();
         win.print();
       }
@@ -2481,5 +2535,59 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
       // --- FIN FUNCIONES PARA EL SISTEMA DE DESBLOQUEO ---
 
     </script>
-  </body>
+  
+<h3>Trabajos Activos</h3>
+<table id="tablaTrabajosActivos">
+  <thead>
+    <tr>
+      <th>Cliente</th>
+      <th>Vehículo</th>
+      <th>Trabajo</th>
+      <th>Estado</th>
+      <th>Entrega</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+</body>
+
+<script>
+let trabajosActivos = JSON.parse(localStorage.getItem("trabajosActivos")) || [];
+
+function guardarTrabajo() {
+  const cliente = document.getElementById("nombreCliente").value;
+  const vehiculo = document.getElementById("marcaVehiculo").value + " " + document.getElementById("modeloVehiculo").value;
+  const trabajo = document.getElementById("trabajoProceso").value || document.getElementById("trabajoRealizado").value;
+  const estado = document.getElementById("estatusTrabajo").value;
+  const entrega = document.getElementById("fechaEntregaEstimada").value;
+
+  const nuevo = { cliente, vehiculo, trabajo, estado, entrega };
+
+  trabajosActivos.push(nuevo);
+  localStorage.setItem("trabajosActivos", JSON.stringify(trabajosActivos));
+  mostrarTrabajos();
+}
+
+function mostrarTrabajos() {
+  const tabla = document.querySelector("#tablaTrabajosActivos tbody");
+  if (!tabla) return;
+  tabla.innerHTML = "";
+  trabajosActivos.forEach(t => {
+    tabla.innerHTML += `<tr>
+      <td>${t.cliente}</td>
+      <td>${t.vehiculo}</td>
+      <td>${t.trabajo}</td>
+      <td>${t.estado}</td>
+      <td>${t.entrega}</td>
+    </tr>`;
+  });
+}
+
+window.onload = () => {
+  mostrarTrabajos();
+}
+</script>
+
 </html>
