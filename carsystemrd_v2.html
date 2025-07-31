@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarsystemRD Avanzado</title>
+    <style>
+      /* Estilos generales y reseteos */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: 'Arial', sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .section {
+        padding: 15px;
+        margin-bottom: 25px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        background: #fff;
+      }
+
+      .section h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #34495e;
+        border-bottom: 2px solid #2c3e50;
+        padding-bottom: 8px;
+      }
+      .section h3 {
+        margin-top: 25px;
+        margin-bottom: 15px;
+        color: #34495e;
+        border-bottom: 1px dashed #a0a0a0;
+        padding-bottom: 5px;
+        font-size: 1.15em;
+        text-align: left;
+      }
+
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: 600;
+        color: #444;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      select,
+      input[type="file"],
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: #fff;
+        transition: border 0.2s;
+      }
+
+      input:focus,
+      select:focus,
+      input[type="file"]:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #007bff;
+      }
+
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+
+      button {
+        display: inline-block;
+        width: 100%;
+        padding: 12px;
+        font-size: 1.05em;
+        color: #fff;
+        background-color: #2c3e50;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #34495e;
+      }
+
+      .button-group {
+          display: flex;
+          gap: 10px;
+          margin-top: 15px;
+          flex-wrap: wrap; /* Permite que los botones se envuelvan */
+      }
+      .button-group button {
+          flex: 1 1 auto; /* Permite que los botones crezcan pero también se reduzcan */
+          min-width: 120px; /* Evita que sean demasiado pequeños */
+      }
+
+
+      #agregarPiezaBtn {
+        background-color: #28a745;
+      }
+
+      #agregarPiezaBtn:hover {
+        background-color: #218838;
+      }
+
+      #calcularCotizacionBtn {
+        background-color: #007bff;
+      }
+
+      #calcularCotizacionBtn:hover {
+        background-color: #0056b3;
+      }
+
+      #imprimirCotizacionBtn {
+        background-color: #6c757d;
+      }
+
+      #imprimirCotizacionBtn:hover {
+        background-color: #5a6268;
+      }
+
+      #guardarCotizacionBtn {
+        background-color: #17a2b8;
+      }
+
+      #guardarCotizacionBtn:hover {
+        background-color: #138496;
+      }
+
+      .result {
+        text-align: center;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-top: 20px;
+        padding: 15px;
+        background: #e9ecef;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+      }
+
+      /* Contenedores de elementos dinámicos (piezas, vehículos) */
+      .item-container > div {
+        border: 1px solid #e0e0e0;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        background-color: #fcfcfc;
+      }
+      .item-container .button-group {
+        margin-top: 5px; /* Menos margen dentro de ítems */
+      }
+
+      /* Radio buttons for status */
+      .radio-group {
+        display: flex;
+        gap: 15px;
+        margin: 15px 0;
+        flex-wrap: wrap;
+      }
+      .radio-group label {
+        display: flex;
+        align-items: center;
+        margin: 0;
+        font-weight: normal;
+        cursor: pointer;
+      }
+      .radio-group input[type="radio"] {
+        width: auto;
+        margin-right: 5px;
+      }
+
+
+      .hidden {
+        display: none;
+      }
+
+      /* Estilos para las Pestañas (Tabs) */
+      .tabs {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .tab-button {
+        background-color: #ecf0f1;
+        color: #2c3e50;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px 5px 0 0;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s, color 0.3s;
+        flex-grow: 1;
+        text-align: center;
+        min-width: 120px;
+      }
+
+      .tab-button.active {
+        background-color: #2c3e50;
+        color: #fff;
+      }
+
+      .tab-button:hover:not(.active) {
+        background-color: #dbe4e6;
+      }
+
+      .tab-content {
+        display: none;
+        padding: 20px 0;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* Sub-tabs */
+      .sub-tabs {
+          display: flex;
+          justify-content: flex-start;
+          margin-bottom: 15px;
+          border-bottom: 1px solid #eee;
+          gap: 3px;
+          flex-wrap: wrap;
+      }
+      .sub-tab-button {
+          background-color: #f0f0f0;
+          color: #555;
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+          border-bottom: none;
+          border-radius: 4px 4px 0 0;
+          cursor: pointer;
+          font-size: 0.9em;
+          font-weight: 600;
+          transition: background-color 0.2s, color 0.2s;
+          margin-bottom: -1px; /* Overlap border */
+      }
+      .sub-tab-button.active {
+          background-color: #fff;
+          color: #2c3e50;
+          border-color: #e0e0e0;
+          border-bottom: 1px solid #fff;
+      }
+      .sub-tab-button:hover:not(.active) {
+          background-color: #e5e5e5;
+      }
+      .sub-tab-content {
+          display: none;
+          padding-top: 15px;
+      }
+      .sub-tab-content.active {
+          display: block;
+      }
+
+
+      /* Estilos para la Sección Imprimible */
+      .printable {
+        display: none;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 2px dashed #ccc;
+      }
+
+      .printable h2,
+      .printable h3 {
+        text-align: left;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .printable p {
+        margin-bottom: 8px;
+        font-size: 1.1em;
+      }
+
+      .printable p strong {
+        color: #2c3e50;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        font-size: 0.95em;
+        text-align: left;
+      }
+
+      th {
+        background-color: #ecf0f1;
+        color: #333;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      .total-row {
+        font-weight: bold;
+        background-color: #e0e0e0;
+      }
+
+      /* Estilos para el diseño de impresión mejorado */
+      .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .print-header h1 {
+        margin-bottom: 5px;
+        color: #2c3e50;
+      }
+
+      .print-header img {
+        max-height: 80px;
+        margin-bottom: 10px;
+      }
+
+      .print-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .print-info div {
+        flex: 1;
+        padding: 0 10px;
+      }
+
+      .print-section-title {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        font-size: 1.2em;
+        color: #34495e;
+      }
+
+      .print-totals {
+        margin-top: 30px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      .print-totals p {
+        text-align: right;
+        font-size: 1.2em;
+        margin-bottom: 5px;
+      }
+
+      .print-final-total {
+        font-size: 1.6em;
+        font-weight: bold;
+        color: #2c3e50;
+        text-align: right;
+        margin-top: 10px;
+      }
+
+      /* Estilos para los mensajes de validación */
+      input:invalid:not(:placeholder-shown), select:invalid:not(:placeholder-shown), textarea:invalid:not(:placeholder-shown) {
+          border-color: #dc3545;
+      }
+      .error-message {
+          color: #dc3545;
+          font-size: 0.85em;
+          margin-top: 5px;
+          display: none;
+      }
+      input:invalid:not(:placeholder-shown) + .error-message, select:invalid:not(:placeholder-shown) + .error-message, textarea:invalid:not(:placeholder-shown) + .error-message {
+          display: block;
+      }
+
+      /* Dashboard specific styles */
+      .dashboard-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
+          margin-top: 20px;
+      }
+      .dashboard-card {
+          background-color: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      }
+      .dashboard-card h3 {
+          color: #007bff;
+          margin-top: 0;
+          border-bottom: 1px solid #dee2e6;
+          padding-bottom: 10px;
+          font-size: 1.2em;
+      }
+      .dashboard-card ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+      }
+      .dashboard-card ul li {
+          padding: 8px 0;
+          border-bottom: 1px dotted #e2e6ea;
+          font-size: 0.95em;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+      .dashboard-card ul li:last-child {
+          border-bottom: none;
+      }
+      .dashboard-card ul li span {
+          color: #555;
+      }
+      .dashboard-card ul li a {
+          color: #007bff;
+          text-decoration: none;
+          font-weight: 600;
+      }
+      .dashboard-card ul li a:hover {
+          text-decoration: underline;
+      }
+      .status-aprobada { color: #28a745; font-weight: bold; }
+      .status-pendiente { color: #ffc107; font-weight: bold; }
+      .status-rechazada { color: #dc3545; font-weight: bold; }
+      .status-none { color: #6c757d; }
+
+      /* Tables for management sections */
+      .data-table-container {
+        max-height: 400px; /* Fixed height for scrollability */
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-top: 20px;
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .data-table th, .data-table td {
+        border: 1px solid #e0e0e0;
+        padding: 8px;
+        text-align: left;
+        font-size: 0.9em;
+      }
+      .data-table th {
+        background-color: #f2f2f2;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      .data-table tbody tr:hover {
+        background-color: #f0f8ff;
+        cursor: pointer;
+      }
+      .data-table .action-buttons {
+        display: flex;
+        gap: 5px;
+      }
+      .data-table .action-buttons button {
+        padding: 5px 8px;
+        font-size: 0.8em;
+        margin: 0;
+        width: auto;
+      }
+
+      /* Media Queries para Responsividad y Pestañas */
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+        .container {
+          padding: 15px;
+        }
+        .tabs, .sub-tabs {
+          flex-direction: column;
+          gap: 2px;
+        }
+        .tab-button, .sub-tab-button {
+          border-radius: 4px;
+          padding: 12px 10px;
+          min-width: auto;
+        }
+        .tab-content {
+          padding: 15px 0;
+        }
+        .print-info {
+          flex-direction: column;
+        }
+        .print-info div {
+          padding: 0;
+          min-width: 100%;
+          margin-bottom: 15px;
+        }
+        input, select, button, textarea {
+          font-size: 0.95em;
+        }
+        .button-group {
+            flex-direction: column;
+            gap: 5px;
+        }
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 1.8em;
+        }
+        h2 {
+          font-size: 1.3em;
+        }
+        .result {
+          font-size: 1.2em;
+          padding: 10px;
+        }
+        button {
+          padding: 10px;
+          font-size: 1em;
+        }
+      }
+
+      /* Estilos específicos para IMPRESIÓN */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+
+        .printable,
+        .printable * {
+          visibility: visible;
+        }
+
+        .printable {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding: 20px;
+          box-shadow: none;
+          border: none;
+          background: none;
+        }
+
+        .container,
+        button:not(#imprimirCotizacionBtn) {
+          display: none !important;
+        }
+
+        .tabs, .tab-content:not(.print-visible), .sub-tabs, .sub-tab-content {
+          display: none !important;
+        }
+        .tab-content.print-visible {
+          display: block !important;
+          border-top: none !important;
+          padding: 0 !important;
+        }
+        .printable * {
+            visibility: visible;
+        }
+
+        .printable h2, .printable h3 {
+          text-align: left;
+          margin-top: 10px;
+          margin-bottom: 10px;
+        }
+        .print-header h1, .print-header h2 {
+            text-align: center;
+        }
+        .print-totals p, .print-final-total {
+            text-align: right;
+        }
+        .print-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .print-info div {
+            flex: 1;
+            min-width: 45%;
+            margin-bottom: 10px;
+        }
+        table {
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        /* Ocultar el input de notas en la impresión, ya que el contenido va al ul */
+        #notasImportantes, label[for="notasImportantes"] {
+            display: none !important;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>CarsystemRD</h1>
+
+      <div class="tabs">
+        <button class="tab-button active" onclick="openTab(event, 'dashboard')">Dashboard</button>
+        <button class="tab-button" onclick="openTab(event, 'nuevaCotizacion')">Nueva Cotización</button>
+        <button class="tab-button" onclick="openTab(event, 'gestionYCatalogos')">Gestión y Catálogos</button>
+        <button class="tab-button" onclick="openTab(event, 'configuracion')">Configuración</button>
+      </div>
+
+      <div id="dashboard" class="tab-content active section">
+        <h2>Dashboard General</h2>
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h3>Clientes Recientes</h3>
+                <ul id="clientesRecientesList">
+                    <li>No hay clientes recientes.</li>
+                </ul>
+                <button onclick="openTab(event, 'gestionYCatalogos', 'clientesYVehiculosTab')">Ver Todos los Clientes</button>
+            </div>
+            <div class="dashboard-card">
+                <h3>Cotizaciones Pendientes</h3>
+                <ul id="cotizacionesPendientesList">
+                    <li>No hay cotizaciones pendientes.</li>
+                </ul>
+                <button onclick="openTab(event, 'gestionYCatalogos', 'historialCotizacionesTab')">Ver Historial de Cotizaciones</button>
+            </div>
+            <div class="dashboard-card">
+                <h3>Cotizaciones Aprobadas Recientes</h3>
+                <ul id="cotizacionesAprobadasList">
+                    <li>No hay cotizaciones aprobadas.</li>
+                </ul>
+                <button onclick="openTab(event, 'gestionYCatalogos', 'historialCotizacionesTab')">Ver Historial de Cotizaciones</button>
+            </div>
+        </div>
+      </div>
+
+      <div id="nuevaCotizacion" class="tab-content section print-visible">
+        <h2>Detalles de la Cotización</h2>
+
+        <h3>Datos del Cliente</h3>
+        <label for="fecha">Fecha de Cotización</label>
+        <input type="date" id="fecha" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+
+        <label for="cargarClienteSelect">Cargar Cliente Existente:</label>
+        <select id="cargarClienteSelect" onchange="cargarClienteSeleccionado()">
+          <option value="">-- Seleccionar o Crear Nuevo Cliente --</option>
+        </select>
+        <button type="button" onclick="limpiarCamposCliente()" style="background-color: #f0ad4e; margin-bottom: 10px;">Nuevo Cliente (Limpiar Campos)</button>
+
+        <label for="tipoIdentificacion">Tipo de Identificación</label>
+        <select id="tipoIdentificacion" onchange="mostrarOcultarCampos()">
+          <option value="cedula">Cédula</option>
+          <option value="rnc">RNC</option>
+        </select>
+        <label for="identificacion">Cédula/RNC</label>
+        <input type="text" id="identificacion" value="" placeholder="Ej: 000-0000000-0" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+        <div id="campoNombreCliente">
+          <label for="nombreCliente">Nombre del Cliente</label>
+          <input type="text" id="nombreCliente" value="" placeholder="Nombre del Cliente" required />
+          <span class="error-message">Este campo es obligatorio.</span>
+        </div>
+        <div id="campoNombreEmpresa" class="hidden">
+          <label for="nombreEmpresa">Nombre de la Empresa</label>
+          <input type="text" id="nombreEmpresa" value="" placeholder="Nombre de la Empresa S.A." />
+          <span class="error-message">Este campo es obligatorio para RNC.</span>
+        </div>
+        <label for="telefonoCliente">Teléfono</label>
+        <input type="text" id="telefonoCliente" value="" placeholder="Ej: 809-123-4567" />
+        <label for="whatsappCliente">WhatsApp</label>
+        <input type="text" id="whatsappCliente" value="" placeholder="Ej: 809-123-4567 (opcional)" />
+
+        <h3>Datos del Vehículo</h3>
+        <label for="cargarVehiculoClienteSelect">Cargar Vehículo del Cliente:</label>
+        <select id="cargarVehiculoClienteSelect" onchange="cargarVehiculoSeleccionadoCliente()">
+          <option value="">-- Seleccionar o Crear Nuevo Vehículo --</option>
+        </select>
+        <button type="button" onclick="limpiarCamposVehiculo()" style="background-color: #f0ad4e; margin-bottom: 10px;">Nuevo Vehículo (Limpiar Campos)</button>
+
+        <label for="vehiculoModelo">Modelo</label>
+        <input type="text" id="vehiculoModelo" value="" placeholder="Ej: Toyota Corolla" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+        <label for="vehiculoAnio">Año</label>
+        <input type="number" id="vehiculoAnio" value="" min="1900" max="2099" placeholder="Ej: 2018" required />
+        <span class="error-message">Este campo es obligatorio y debe ser un año válido.</span>
+        <label for="vehiculoCombustible">Combustible</label>
+        <select id="vehiculoCombustible" required>
+          <option value="Gasolina">Gasolina</option>
+          <option value="Diésel">Diésel</option>
+          <option value="Eléctrico">Eléctrico</option>
+          <option value="Híbrido">Híbrido</option>
+        </select>
+        <span class="error-message">Este campo es obligatorio.</span>
+        <label for="vehiculoChasis">Chasis</label>
+        <input type="text" id="vehiculoChasis" value="" placeholder="Ej: XXXXXXXXXXXXXXXXX" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+        <label for="vehiculoPlaca">Placa</label>
+        <input type="text" id="vehiculoPlaca" value="" placeholder="Ej: A000000" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+
+        <div class="button-group">
+            <button type="button" onclick="guardarClienteYVehiculo()" style="background-color: #28a745;">Guardar Cliente y Vehículo</button>
+        </div>
+
+
+        
+<h3>Orden de Entrada</h3>
+<label for="combustibleActual">Nivel de Combustible</label>
+<select id="combustibleActual">
+  <option>Lleno</option>
+  <option>3/4</option>
+  <option>1/2</option>
+  <option>1/4</option>
+  <option>Vacío</option>
+</select>
+
+<label for="millajeEntrada">Millaje Actual</label>
+<input type="number" id="millajeEntrada" placeholder="Ej: 120000" />
+
+<label>¿Enciende?</label>
+<div class="radio-group">
+  <label><input type="radio" name="enciende" value="Sí" checked /> Sí</label>
+  <label><input type="radio" name="enciende" value="No" /> No</label>
+</div>
+
+<label>¿Forma de llegada?</label>
+<div class="radio-group">
+  <label><input type="radio" name="modoLlegada" value="Grúa" /> Grúa</label>
+  <label><input type="radio" name="modoLlegada" value="Conduciendo" checked /> Conduciendo</label>
+</div>
+
+<label for="lucesTablero">Luces en el Tablero (marca las visibles)</label>
+<div class="checkbox-group">
+  <label><input type="checkbox" value="Check Engine" /> Check Engine</label>
+  <label><input type="checkbox" value="ABS" /> ABS</label>
+  <label><input type="checkbox" value="Aceite" /> Aceite</label>
+  <label><input type="checkbox" value="Batería" /> Batería</label>
+  <label><input type="checkbox" value="Airbag" /> Airbag</label>
+</div>
+
+<label for="accesorios">Accesorios Presentes</label>
+<textarea id="accesorios" placeholder="Ej: Radio, bocinas, aire, alfombras..."></textarea>
+
+<label for="observacionesEntrada">Observaciones Adicionales</label>
+<textarea id="observacionesEntrada"></textarea>
+
+<h3>Detalles del Servicio</h3>
+        <label for="selectServicioCatalogoNuevaCotizacion">Cargar Servicio del Catálogo:</label>
+        <select id="selectServicioCatalogoNuevaCotizacion" onchange="cargarServicioCatalogoNuevaCotizacion()">
+            <option value="">-- Seleccionar un servicio --</option>
+        </select>
+
+        <label for="trabajo">Trabajo a realizar</label>
+        <input type="text" id="trabajo" value="" placeholder="Ej: Revisión General y Cambio de Aceite" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+        <label for="horas">Horas estimadas</label>
+        <input type="number" id="horas" value="2" min="0.5" step="0.5" required />
+        <span class="error-message">Ingrese un número positivo.</span>
+        <label for="dificultad">Nivel de dificultad</label>
+        <select id="dificultad" required>
+          <option value="1.0">Fácil</option>
+          <option value="1.2" selected>Medio</option>
+          <option value="1.5">Difícil</option>
+          <option value="2.0">Muy difícil</option>
+        </select>
+        <span class="error-message">Este campo es obligatorio.</span>
+        <label for="experiencia">Experiencia del técnico</label>
+        <select id="experiencia" required>
+          <option value="0.8">Aprendiz</option>
+          <option value="1.0" selected>Intermedio</option>
+          <option value="1.3">Muy experto</option>
+        </select>
+        <span class="error-message">Este campo es obligatorio.</span>
+
+        <h3>Piezas Utilizadas</h3>
+        <label for="selectPiezaCatalogoNuevaCotizacion">Cargar Pieza del Catálogo:</label>
+        <select id="selectPiezaCatalogoNuevaCotizacion" onchange="cargarPiezaCatalogoNuevaCotizacion()">
+            <option value="">-- Seleccionar una pieza --</option>
+        </select>
+        <div id="piezasContainer" class="item-container"></div>
+        <button type="button" id="agregarPiezaBtn" onclick="agregarPieza()">Añadir pieza</button>
+
+        <h3>Estado de la Cotización</h3>
+        <div class="radio-group">
+            <label><input type="radio" name="cotizacionStatus" value="pendiente" checked> Pendiente</label>
+            <label><input type="radio" name="cotizacionStatus" value="aprobada"> Aprobada</label>
+            <label><input type="radio" name="cotizacionStatus" value="rechazada"> Rechazada</label>
+        </div>
+
+        
+<h3>Seguimiento del Trabajo</h3>
+
+<label for="estatusTrabajo">Estado del Trabajo</label>
+<select id="estatusTrabajo">
+  <option value="en_espera">En espera</option>
+  <option value="en_proceso">En proceso</option>
+  <option value="terminado">Terminado</option>
+</select>
+
+<label for="trabajoProceso">Trabajo en Proceso (Notas del Técnico)</label>
+<textarea id="trabajoProceso" placeholder="Describa avances, problemas, etc..."></textarea>
+
+<label for="trabajoRealizado">Trabajo Realizado</label>
+<textarea id="trabajoRealizado" placeholder="Resultado final del trabajo, observaciones..."></textarea>
+
+<label for="fechaEntregaEstimada">Fecha Estimada de Entrega</label>
+<input type="date" id="fechaEntregaEstimada" />
+
+<label for="fechaEntregaReal">Fecha Real de Entrega</label>
+<input type="date" id="fechaEntregaReal" />
+
+<button type="button" id="calcularCotizacionBtn" onclick="calcularTotal()">Calcular cotización</button>
+        <div class="result" id="resultado">Total: RD$ 0.00</div>
+        <div class="button-group">
+            <button type="button" id="guardarCotizacionBtn" onclick="guardarCotizacion()">Guardar Cotización</button>
+            <button type="button" id="imprimirCotizacionBtn" onclick="imprimirCotizacion()">Imprimir Cotización</button>
+        </div>
+      </div>
+
+      <div id="gestionYCatalogos" class="tab-content section">
+        <h2>Gestión de Datos</h2>
+
+        <div class="sub-tabs">
+            <button class="sub-tab-button active" onclick="openSubTab(event, 'clientesYVehiculosTab')">Clientes y Vehículos</button>
+            <button class="sub-tab-button" onclick="openSubTab(event, 'historialCotizacionesTab')">Historial de Cotizaciones</button>
+            <button class="sub-tab-button" onclick="openSubTab(event, 'catalogoServiciosTab')">Catálogo de Servicios</button>
+            <button class="sub-tab-button" onclick="openSubTab(event, 'catalogoPiezasTab')">Catálogo de Piezas</button>
+        </div>
+
+        <div id="clientesYVehiculosTab" class="sub-tab-content active">
+            <h3>Gestión de Clientes y sus Vehículos</h3>
+            <label for="filtroClientes">Buscar Cliente (Nombre/ID/Teléfono):</label>
+            <input type="text" id="filtroClientes" onkeyup="filtrarClientes()" placeholder="Escribe para buscar...">
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre/Empresa</th>
+                            <th>Teléfono</th>
+                            <th>WhatsApp</th>
+                            <th>Vehículos</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaClientesTable">
+                        <tr><td colspan="6" style="text-align: center;">No hay clientes registrados.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9em; color: #555;">Selecciona un cliente de la tabla para editarlo o gestiona sus vehículos.</p>
+        </div>
+
+        <div id="historialCotizacionesTab" class="sub-tab-content">
+            <h3>Historial de Cotizaciones</h3>
+            <label for="filtroCotizaciones">Buscar Cotización (ID/Cliente/Placa):</label>
+            <input type="text" id="filtroCotizaciones" onkeyup="filtrarCotizaciones()" placeholder="Escribe para buscar...">
+            <label for="filtroEstadoCotizacion">Filtrar por Estado:</label>
+            <select id="filtroEstadoCotizacion" onchange="filtrarCotizaciones()">
+                <option value="todos">Todos</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="aprobada">Aprobadas</option>
+                <option value="rechazada">Rechazadas</option>
+            </select>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID Cotización</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vehículo (Placa)</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaCotizacionesTable">
+                        <tr><td colspan="7" style="text-align: center;">No hay cotizaciones guardadas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9em; color: #555;">Haz clic en una cotización para cargarla o cambiar su estado.</p>
+        </div>
+
+        <div id="catalogoServiciosTab" class="sub-tab-content">
+            <h3>Catálogo de Servicios Predeterminados</h3>
+            <label for="nombreServicioCatalogo">Nombre del Servicio</label>
+            <input type="text" id="nombreServicioCatalogo" placeholder="Ej: Cambio de Aceite, Revisión de Frenos">
+            <label for="horasServicioCatalogo">Horas Estimadas</label>
+            <input type="number" id="horasServicioCatalogo" min="0.5" step="0.5" value="1">
+            <label for="dificultadServicioCatalogo">Nivel de Dificultad</label>
+            <select id="dificultadServicioCatalogo">
+                <option value="1.0">Fácil</option>
+                <option value="1.2" selected>Medio</option>
+                <option value="1.5">Difícil</option>
+                <option value="2.0">Muy difícil</option>
+            </select>
+            <label for="experienciaServicioCatalogo">Experiencia del Técnico</label>
+            <select id="experienciaServicioCatalogo">
+                <option value="0.8">Aprendiz</option>
+                <option value="1.0" selected>Intermedio</option>
+                <option value="1.3">Muy experto</option>
+            </select>
+            <div class="button-group">
+                <button type="button" onclick="guardarServicioCatalogo()">Guardar Servicio</button>
+                <button type="button" onclick="eliminarServicioCatalogo()" style="background-color: #dc3545;">Eliminar Servicio</button>
+            </div>
+            <label for="selectServicioCatalogoGestion" style="margin-top: 20px;">Seleccionar Servicio a Editar:</label>
+            <select id="selectServicioCatalogoGestion" onchange="previewServicioCatalogo()">
+                <option value="">-- Seleccionar un servicio guardado --</option>
+            </select>
+        </div>
+
+        <div id="catalogoPiezasTab" class="sub-tab-content">
+            <h3>Catálogo de Piezas</h3>
+            <label for="nombrePiezaCatalogo">Nombre de la Pieza</label>
+            <input type="text" id="nombrePiezaCatalogo" placeholder="Ej: Filtro de Aceite, Pastillas de Freno">
+            <label for="costoPiezaCatalogo">Costo Unitario (RD$)</label>
+            <input type="number" id="costoPiezaCatalogo" min="0" step="0.01" value="0">
+            <label for="margenPiezaCatalogo">Margen de Ganancia (Ej: 1.3 para 30%)</label>
+            <input type="number" id="margenPiezaCatalogo" min="1.0" step="0.01" value="1.3">
+            <div class="button-group">
+                <button type="button" onclick="guardarPiezaCatalogo()">Guardar Pieza</button>
+                <button type="button" onclick="eliminarPiezaCatalogo()" style="background-color: #dc3545;">Eliminar Pieza</button>
+            </div>
+            <label for="selectPiezaCatalogoGestion" style="margin-top: 20px;">Seleccionar Pieza a Editar:</label>
+            <select id="selectPiezaCatalogoGestion" onchange="previewPiezaCatalogo()">
+                <option value="">-- Seleccionar una pieza guardada --</option>
+            </select>
+        </div>
+      </div>
+
+      <div id="configuracion" class="tab-content section print-visible">
+        <h2>Configuración General del Taller</h2>
+
+        <h3>Datos del Taller para Impresión</h3>
+        <label for="nombreEmpresaPrint">Nombre de tu Negocio</label>
+        <input type="text" id="nombreEmpresaPrint" value="Mi Taller Mecánico S.R.L.">
+        <label for="logoFile">Cargar Logo (PNG)</label>
+        <input type="file" id="logoFile" accept="image/png" onchange="handleLogoUpload()">
+        <p style="font-size: 0.85em; color: #666; margin-top: 5px;">*El logo se mostrará si se ha cargado correctamente.</p>
+
+        <h3>Opciones de Facturación</h3>
+        <label for="aplicarItbis">Aplicar ITBIS (18%)</label>
+        <select id="aplicarItbis">
+          <option value="si" selected>Sí</option>
+          <option value="no">No</option>
+        </select>
+        <label for="emitidoPor">Emitido por</label>
+        <input type="text" id="emitidoPor" value="[Tu Nombre/Nombre de la Empresa]" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+
+        <button type="button" onclick="guardarDatosConfiguracion()" style="background-color: #007bff; margin-top: 10px;">Guardar Configuración</button>
+
+
+        <h3>Notas Importantes de Impresión</h3>
+        <label for="notasImportantes">Texto de Notas Importantes (una línea por punto)</label>
+        <textarea id="notasImportantes" rows="6">Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.
+Los precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.
+Se requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.
+El tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.
+La garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.
+No nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.
+Cualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.
+La entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.</textarea>
+        <button type="button" onclick="guardarDatosConfiguracion()" style="background-color: #6c757d;">Guardar Notas</button>
+
+        <h3 style="margin-top: 25px;">Estado de la Aplicación</h3>
+        <p id="unlockStatus" style="font-weight: bold; text-align: center; margin-bottom: 15px;"></p>
+        <button type="button" id="unlockAppBtn" onclick="unlockApp()" style="background-color: #f0ad4e;">Desbloquear Versión Completa</button>
+      </div>
+
+      <div class="printable" id="printableArea">
+        <div class="print-header">
+          <img id="printLogo" src="" alt="Logo de la Empresa" style="display: none;">
+          <h1>Cotización de Servicio</h1>
+          <h2>Mecánica Automotriz</h2>
+          <p>Fecha: <span id="pFechaPrintHeader"></span></p>
+          <p>Emitido por: <span id="pEmitidoPor"></span></p>
+        </div>
+        <hr />
+
+        <div class="print-info">
+          <div>
+            <p><strong>Cliente:</strong> <span id="pNombreCliente"></span></p>
+            <p><strong>Tipo Identificación:</strong> <span id="pTipoIdentificacion"></span></p>
+            <p><strong>Identificación:</strong> <span id="pIdentificacion"></span></p>
+            <p id="pNombreEmpresaContainer" class="hidden">
+              <strong>Empresa:</strong> <span id="pNombreEmpresa"></span>
+            </p>
+            <p><strong>Teléfono:</strong> <span id="pTelefonoCliente"></span></p>
+            <p><strong>WhatsApp:</strong> <span id="pWhatsappCliente"></span></p>
+          </div>
+          <div>
+            <p><strong>Vehículo:</strong> <span id="pVehiculoModelo"></span> (<span id="pVehiculoAnio"></span>)</p>
+            <p><strong>Combustible:</strong> <span id="pVehiculoCombustible"></span></p>
+            <p><strong>Chasis:</strong> <span id="pVehiculoChasis"></span></p>
+            <p><strong>Placa:</strong> <span id="pVehiculoPlaca"></span></p>
+          </div>
+        </div>
+
+        <h3 class="print-section-title">Trabajo a Realizar</h3>
+        <p>
+          <strong>Descripción:</strong>
+          <span id="pTrabajo"></span>
+        </p>
+
+        <h3 class="print-section-title">Detalle del Servicio y Piezas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Cantidad/Horas</th>
+              <th>Precio Unit.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Mano de Obra</td>
+              <td id="pHorasServicio"></td>
+              <td id="pPrecioManoObraUnit"></td>
+              <td id="pPrecioServicio"></td>
+            </tr>
+          </tbody>
+          <tbody id="piezasPrint">
+            </tbody>
+        </table>
+
+        <div class="print-totals">
+          <p><strong>Subtotal:</strong> RD$ <span id="pSubtotal"></span></p>
+          <p id="pItbisContainer" class="hidden"><strong>ITBIS (18%):</strong> RD$ <span id="pItbis"></span></p>
+          <p class="print-final-total"><strong>TOTAL FINAL:</strong> RD$ <span id="pTotal"></span></p>
+        </div>
+
+        <div class="print-notes" style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+          <h3 style="text-align: left; color: #34495e; margin-bottom: 15px;">Notas Importantes y Términos del Servicio:</h3>
+          <ul id="printNotesList" style="list-style-type: disc; margin-left: 20px; font-size: 0.95em; line-height: 1.8;">
+            </ul>
+          <div style="margin-top: 40px; text-align: right; font-size: 1.1em; font-weight: bold;">
+            <p style="margin-bottom: 50px;">_________________________</p>
+            <p>Firma del Cliente / Aceptación</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const PRECIO_BASE_HORA = 750;
+      const ITBIS_RATE = 0.18;
+      let piezasCounter = 0;
+      let piezasActivas = [];
+
+      // Constantes para las claves de localStorage
+      const LOCAL_STORAGE_EMPRESA_KEY = 'datosEmpresaMecanico';
+      const LOCAL_STORAGE_CLIENTES_KEY = 'clientesMecanico';
+      const LOCAL_STORAGE_COTIZACIONES_KEY = 'cotizacionesMecanico';
+      const LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY = 'serviciosCatalogoMecanico';
+      const LOCAL_STORAGE_PIEZAS_CATALOGO_KEY = 'piezasCatalogoMecanico';
+      const LOCAL_STORAGE_NOTAS_IMPORTANTES_KEY = 'notasImportantesMecanico';
+      const LOCAL_STORAGE_CONFIG_KEY = 'configuracionGeneralMecanico'; // Nueva clave para configuración general
+
+      // --- CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
+      const MASTER_KEYS = ['KJH8P9S', 'XYZ1A2B', 'CDE3F4G', 'MNO5P6Q', 'RST7U8V'];
+      const LOCAL_STORAGE_UNLOCKED_KEY = 'appUnlocked';
+      let isAppUnlocked = false;
+
+      const MAX_CLIENTES_DEMO = 5;
+      const MAX_COTIZACIONES_DEMO = 5;
+      const MAX_SERVICIOS_DEMO = 5;
+      const MAX_PIEZAS_DEMO = 10;
+      // --- FIN CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
+
+      let clientesGuardados = [];
+      let cotizacionesGuardadas = [];
+      let serviciosCatalogo = [];
+      let piezasCatalogo = [];
+      let logoBase64 = null; // Variable para almacenar el logo en Base64
+      let configuracionGeneral = {
+          nombreEmpresaPrint: "Mi Taller Mecánico S.R.L.",
+          aplicarItbis: "si",
+          emitidoPor: "[Tu Nombre/Nombre de la Empresa]",
+          notasImportantes: `Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.
+Los precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.
+Se requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.
+El tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.
+La garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.
+No nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.
+Cualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.
+La entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.`
+      };
+
+
+      // --- Inicialización al cargar la página ---
+      document.addEventListener('DOMContentLoaded', (event) => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('fecha').value = `${year}-${month}-${day}`;
+        document.getElementById('pFechaPrintHeader').textContent = `${day}/${month}/${year}`;
+
+        agregarPieza(); // Añade una pieza por defecto al cargar en Nueva Cotización
+
+        // Cargar todos los datos del localStorage
+        cargarConfiguracionGeneral(); // Carga todos los datos de configuración
+        cargarDatosEmpresa(); // Carga el logo
+        cargarClientesGuardados();
+        cargarCotizacionesGuardadas();
+        cargarServiciosCatalogo();
+        cargarPiezasCatalogo();
+        actualizarListaServiciosCatalogoEnNuevaCotizacion(); // Asegurar que el select del catálogo en nueva cotización esté lleno
+        actualizarListaPiezasCatalogoEnNuevaCotizacion(); // Asegurar que el select del catálogo en nueva cotización esté lleno
+
+
+        // Verificar y actualizar UI del modo demo
+        checkUnlockStatus();
+        updateUnlockUI();
+
+        // Mostrar la primera pestaña al iniciar (Dashboard)
+        document.querySelector('.tab-button').click();
+
+        // Cargar Dashboard inicial
+        updateDashboard();
+
+        // Añadir listeners para validación
+        setupValidationListeners();
+      });
+
+      function setupValidationListeners() {
+          const inputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+          inputs.forEach(input => {
+              input.addEventListener('input', () => validateField(input));
+              input.addEventListener('change', () => validateField(input)); // Para selects y dates
+              input.addEventListener('blur', () => validateField(input)); // Al perder el foco
+          });
+      }
+
+      function validateField(field) {
+          if (field.checkValidity()) {
+              field.classList.remove('invalid-field');
+              if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
+                  field.nextElementSibling.style.display = 'none';
+              }
+          } else {
+              field.classList.add('invalid-field');
+              if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
+                  field.nextElementSibling.style.display = 'block';
+              }
+          }
+      }
+
+      function validateAllFields(tabId = null) {
+          let allValid = true;
+          let selector = 'input[required], select[required], textarea[required]';
+          if (tabId) {
+              selector = `#${tabId} ${selector}`;
+          }
+
+          const inputs = document.querySelectorAll(selector);
+          inputs.forEach(input => {
+              if (!input.checkValidity()) {
+                  validateField(input); // Muestra el error
+                  allValid = false;
+              }
+          });
+          return allValid;
+      }
+
+      // --- FUNCIONES PARA PESTAÑAS (Tabs y Sub-Tabs) ---
+      function openTab(evt, tabName, subTabName = null) {
+        let i, tabcontent, tabbuttons;
+
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+
+        tabbuttons = document.getElementsByClassName("tab-button");
+        for (i = 0; i < tabbuttons.length; i++) {
+          tabbuttons[i].className = tabbuttons[i].className.replace(" active", "");
+        }
+
+        document.getElementById(tabName).style.display = "block";
+        if (evt) evt.currentTarget.className += " active";
+        else document.querySelector(`.tab-button[onclick*="${tabName}"]`).className += " active"; // Para llamadas desde JS sin evento
+
+        // Si hay una subpestaña específica para abrir
+        if (subTabName) {
+            openSubTab(null, subTabName);
+        }
+
+        // Acciones específicas al abrir pestañas
+        if (tabName === 'dashboard') {
+            updateDashboard();
+        } else if (tabName === 'gestionYCatalogos') {
+            // Asegurar que la primera subpestaña se abra por defecto
+            if (!document.querySelector('#gestionYCatalogos .sub-tab-content.active')) {
+                openSubTab(null, 'clientesYVehiculosTab');
+            }
+            actualizarTablaClientes();
+            actualizarListaCotizacionesHistorial();
+            actualizarListaServiciosCatalogo();
+            actualizarListaPiezasCatalogo();
+        } else if (tabName === 'nuevaCotizacion') {
+            // Asegurar que los selectores de catálogo estén actualizados
+            actualizarListaServiciosCatalogoEnNuevaCotizacion();
+            actualizarListaPiezasCatalogoEnNuevaCotizacion();
+            // Si no hay fecha, poner la actual
+            if (!document.getElementById('fecha').value) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                document.getElementById('fecha').value = `${year}-${month}-${day}`;
+            }
+        }
+      }
+
+      function openSubTab(evt, subTabName) {
+          let i, subTabContent, subTabButtons;
+
+          subTabContent = document.getElementsByClassName("sub-tab-content");
+          for (i = 0; i < subTabContent.length; i++) {
+              subTabContent[i].style.display = "none";
+          }
+
+          subTabButtons = document.getElementsByClassName("sub-tab-button");
+          for (i = 0; i < subTabButtons.length; i++) {
+              subTabButtons[i].className = subTabButtons[i].className.replace(" active", "");
+          }
+
+          document.getElementById(subTabName).style.display = "block";
+          if (evt) evt.currentTarget.className += " active";
+          else document.querySelector(`.sub-tab-button[onclick*="${subTabName}"]`).className += " active";
+
+          // Acciones específicas por subpestaña
+          if (subTabName === 'clientesYVehiculosTab') {
+              actualizarTablaClientes();
+          } else if (subTabName === 'historialCotizacionesTab') {
+              actualizarListaCotizacionesHistorial();
+          } else if (subTabName === 'catalogoServiciosTab') {
+              actualizarListaServiciosCatalogo();
+              previewServicioCatalogo(); // Limpiar/mostrar último seleccionado
+          } else if (subTabName === 'catalogoPiezasTab') {
+              actualizarListaPiezasCatalogo();
+              previewPiezaCatalogo(); // Limpiar/mostrar último seleccionado
+          }
+      }
+      // --- FIN FUNCIONES PARA PESTAÑAS ---
+
+      // --- FUNCIONES PARA DASHBOARD ---
+      function updateDashboard() {
+          const clientesList = document.getElementById('clientesRecientesList');
+          const cotizacionesPendientesList = document.getElementById('cotizacionesPendientesList');
+          const cotizacionesAprobadasList = document.getElementById('cotizacionesAprobadasList');
+
+          clientesList.innerHTML = '';
+          cotizacionesPendientesList.innerHTML = '';
+          cotizacionesAprobadasList.innerHTML = '';
+
+          // Clientes Recientes (últimos 5)
+          if (clientesGuardados.length === 0) {
+              clientesList.innerHTML = '<li>No hay clientes recientes.</li>';
+          } else {
+              const recentClients = clientesGuardados.slice().sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified)).slice(0, 5);
+              recentClients.forEach(cliente => {
+                  const li = document.createElement('li');
+                  li.innerHTML = `<span>${cliente.nombre}</span> <a href="#" onclick="cargarClienteYCotizar('${cliente.id}'); return false;">Cotizar</a>`;
+                  clientesList.appendChild(li);
+              });
+          }
+
+          // Cotizaciones Pendientes (últimas 5)
+          const pendientes = cotizacionesGuardadas.filter(cot => cot.status === 'pendiente').slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
+          if (pendientes.length === 0) {
+              cotizacionesPendientesList.innerHTML = '<li>No hay cotizaciones pendientes.</li>';
+          } else {
+              pendientes.forEach(cot => {
+                  const li = document.createElement('li');
+                  li.innerHTML = `<span>${cot.cliente.nombre} (${cot.vehiculo.placa})</span> <a href="#" onclick="cargarCotizacionParaEditar('${cot.id}'); return false;">Ver</a>`;
+                  cotizacionesPendientesList.appendChild(li);
+              });
+          }
+
+          // Cotizaciones Aprobadas Recientes (últimas 5)
+          const aprobadas = cotizacionesGuardadas.filter(cot => cot.status === 'aprobada').slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
+          if (aprobadas.length === 0) {
+              cotizacionesAprobadasList.innerHTML = '<li>No hay cotizaciones aprobadas.</li>';
+          } else {
+              aprobadas.forEach(cot => {
+                  const li = document.createElement('li');
+                  li.innerHTML = `<span>${cot.cliente.nombre} (${cot.vehiculo.placa})</span> <a href="#" onclick="cargarCotizacionParaEditar('${cot.id}'); return false;">Ver</a>`;
+                  cotizacionesAprobadasList.appendChild(li);
+              });
+          }
+      }
+
+      function cargarClienteYCotizar(clientId) {
+          openTab(null, 'nuevaCotizacion');
+          const selectCliente = document.getElementById('cargarClienteSelect');
+          selectCliente.value = clientId;
+          cargarClienteSeleccionado();
+      }
+
+      function cargarCotizacionParaEditar(cotId) {
+          openTab(null, 'nuevaCotizacion');
+          cargarCotizacionById(cotId);
+      }
+      // --- FIN FUNCIONES PARA DASHBOARD ---
+
+
+      // --- FUNCIONES PARA DATOS DE EMPRESA Y CONFIGURACIÓN ---
+      function handleLogoUpload() {
+          const fileInput = document.getElementById('logoFile');
+          const file = fileInput.files[0];
+
+          if (file) {
+              if (file.type !== 'image/png') {
+                  alert('Por favor, selecciona un archivo PNG.');
+                  fileInput.value = '';
+                  logoBase64 = null;
+                  return;
+              }
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                  logoBase64 = e.target.result;
+                  alert('Logo cargado exitosamente. Recuerda Guardar Configuración.');
+              };
+              reader.readAsDataURL(file);
+          } else {
+              logoBase64 = null;
+          }
+      }
+
+      function guardarDatosConfiguracion() {
+        configuracionGeneral.nombreEmpresaPrint = document.getElementById('nombreEmpresaPrint').value;
+        configuracionGeneral.aplicarItbis = document.getElementById('aplicarItbis').value;
+        configuracionGeneral.emitidoPor = document.getElementById('emitidoPor').value.trim();
+        configuracionGeneral.notasImportantes = document.getElementById('notasImportantes').value;
+
+        try {
+            localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(configuracionGeneral));
+            localStorage.setItem(LOCAL_STORAGE_EMPRESA_KEY, JSON.stringify({ logo: logoBase64 })); // Logo se guarda separado si es muy grande
+            alert('Configuración y notas guardadas exitosamente.');
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                alert('No se pudo guardar el logo o la configuración. Es demasiado grande para el almacenamiento local. Intenta con un logo más pequeño (menos de 5MB).');
+            } else {
+                alert('Error al guardar la configuración: ' + e.message);
+            }
+        }
+      }
+
+      function cargarConfiguracionGeneral() {
+        const configGuardada = localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
+        if (configGuardada) {
+          Object.assign(configuracionGeneral, JSON.parse(configGuardada));
+        }
+        // Aplicar a la UI
+        document.getElementById('nombreEmpresaPrint').value = configuracionGeneral.nombreEmpresaPrint;
+        document.getElementById('aplicarItbis').value = configuracionGeneral.aplicarItbis;
+        document.getElementById('emitidoPor').value = configuracionGeneral.emitidoPor;
+        document.getElementById('notasImportantes').value = configuracionGeneral.notasImportantes;
+
+        const datosLogo = localStorage.getItem(LOCAL_STORAGE_EMPRESA_KEY);
+        if (datosLogo) {
+            const parsedLogo = JSON.parse(datosLogo);
+            logoBase64 = parsedLogo.logo || null;
+        }
+      }
+      // --- FIN FUNCIONES PARA DATOS DE EMPRESA Y CONFIGURACIÓN ---
+
+      // --- FUNCIONES PARA CLIENTES Y VEHÍCULOS ASOCIADOS ---
+      function mostrarOcultarCampos() {
+        const tipoIdentificacion = document.getElementById('tipoIdentificacion').value;
+        const campoNombreEmpresa = document.getElementById('campoNombreEmpresa');
+        const identificacionInput = document.getElementById('identificacion');
+        const nombreEmpresaInput = document.getElementById('nombreEmpresa');
+
+        if (tipoIdentificacion === 'rnc') {
+          campoNombreEmpresa.classList.remove('hidden');
+          nombreEmpresaInput.setAttribute('required', 'required');
+          identificacionInput.setAttribute('placeholder', 'Ej: 000-00000-0');
+          if (identificacionInput.value === '000-0000000-0' || identificacionInput.value === '') {
+              identificacionInput.value = ''; // Limpiar para que el usuario ponga el formato correcto
+          }
+        } else {
+          campoNombreEmpresa.classList.add('hidden');
+          nombreEmpresaInput.removeAttribute('required');
+          identificacionInput.setAttribute('placeholder', 'Ej: 000-0000000-0');
+          if (identificacionInput.value === '000-00000-0' || identificacionInput.value === '') {
+              identificacionInput.value = ''; // Limpiar para que el usuario ponga el formato correcto
+          }
+        }
+        validateField(identificacionInput);
+        validateField(nombreEmpresaInput);
+      }
+
+      function obtenerDatosClienteActual() {
+          return {
+              tipo: document.getElementById('tipoIdentificacion').value,
+              id: document.getElementById('identificacion').value.trim(),
+              nombre: document.getElementById('nombreCliente').value.trim(),
+              empresa: document.getElementById('tipoIdentificacion').value === 'rnc' ? document.getElementById('nombreEmpresa').value.trim() : '',
+              telefono: document.getElementById('telefonoCliente').value.trim(),
+              whatsapp: document.getElementById('whatsappCliente').value.trim(),
+              lastModified: new Date().toISOString() // Para el Dashboard de clientes recientes
+          };
+      }
+
+      function obtenerDatosVehiculoActual() {
+          return {
+              modelo: document.getElementById('vehiculoModelo').value.trim(),
+              anio: document.getElementById('vehiculoAnio').value.trim(),
+              combustible: document.getElementById('vehiculoCombustible').value.trim(),
+              chasis: document.getElementById('vehiculoChasis').value.trim(),
+              placa: document.getElementById('vehiculoPlaca').value.trim()
+          };
+      }
+
+      function limpiarCamposCliente() {
+        document.getElementById('identificacion').value = '';
+        document.getElementById('nombreCliente').value = '';
+        document.getElementById('nombreEmpresa').value = '';
+        document.getElementById('telefonoCliente').value = '';
+        document.getElementById('whatsappCliente').value = '';
+        document.getElementById('tipoIdentificacion').value = 'cedula';
+        mostrarOcultarCampos(); // Resetea la visibilidad de empresa
+        document.getElementById('cargarClienteSelect').value = ''; // Deseleccionar
+        currentLoadedClientId = null;
+        // Resetear validación visual
+        document.getElementById('identificacion').classList.remove('invalid-field');
+        document.getElementById('nombreCliente').classList.remove('invalid-field');
+        document.getElementById('nombreEmpresa').classList.remove('invalid-field');
+      }
+
+      function limpiarCamposVehiculo() {
+          document.getElementById('vehiculoModelo').value = '';
+          document.getElementById('vehiculoAnio').value = '';
+          document.getElementById('vehiculoCombustible').value = 'Gasolina';
+          document.getElementById('vehiculoChasis').value = '';
+          document.getElementById('vehiculoPlaca').value = '';
+          document.getElementById('cargarVehiculoClienteSelect').value = ''; // Deseleccionar
+          // Resetear validación visual
+          document.getElementById('vehiculoModelo').classList.remove('invalid-field');
+          document.getElementById('vehiculoAnio').classList.remove('invalid-field');
+          document.getElementById('vehiculoCombustible').classList.remove('invalid-field');
+          document.getElementById('vehiculoChasis').classList.remove('invalid-field');
+          document.getElementById('vehiculoPlaca').classList.remove('invalid-field');
+      }
+
+      function guardarClienteYVehiculo() {
+        // Validar los campos del cliente y vehículo en la pestaña Nueva Cotización
+        if (!validateAllFields('nuevaCotizacion')) {
+            alert('Por favor, corrige los campos marcados del cliente y vehículo antes de guardar.');
+            return;
+        }
+
+        const clienteData = obtenerDatosClienteActual();
+        const vehiculoData = obtenerDatosVehiculoActual();
+
+        let existingCliente = clientesGuardados.find(c => c.id === clienteData.id);
+
+        if (existingCliente) {
+          // Actualizar datos del cliente
+          existingCliente.tipo = clienteData.tipo;
+          existingCliente.nombre = clienteData.nombre;
+          existingCliente.empresa = clienteData.empresa;
+          existingCliente.telefono = clienteData.telefono;
+          existingCliente.whatsapp = clienteData.whatsapp;
+          existingCliente.lastModified = new Date().toISOString();
+
+          // Actualizar o añadir el vehículo (basado en chasis)
+          const existingVehicleIndex = existingCliente.vehiculos.findIndex(v => v.chasis === vehiculoData.chasis);
+          if (existingVehicleIndex > -1) {
+            existingCliente.vehiculos[existingVehicleIndex] = vehiculoData;
+            alert(`Cliente y vehículo con identificación ${clienteData.id} actualizados.`);
+          } else {
+            existingCliente.vehiculos.push(vehiculoData);
+            alert(`Cliente con identificación ${clienteData.id} actualizado y nuevo vehículo asociado.`);
+          }
+
+        } else {
+          if (!isAppUnlocked && clientesGuardados.length >= MAX_CLIENTES_DEMO) {
+            alert(`¡Límite de Clientes Alcanzado! Esta es una versión demo y solo puede guardar hasta ${MAX_CLIENTES_DEMO} clientes. Elimina un cliente existente para guardar uno nuevo.`);
+            return;
+          }
+
+          const nuevoCliente = {
+            id: clienteData.id,
+            tipo: clienteData.tipo,
+            nombre: clienteData.nombre,
+            empresa: clienteData.empresa,
+            telefono: clienteData.telefono,
+            whatsapp: clienteData.whatsapp,
+            vehiculos: [vehiculoData],
+            lastModified: new Date().toISOString()
+          };
+          clientesGuardados.push(nuevoCliente);
+          alert(`Cliente con identificación ${clienteData.id} guardado.`);
+        }
+
+        localStorage.setItem(LOCAL_STORAGE_CLIENTES_KEY, JSON.stringify(clientesGuardados));
+        actualizarListaClientes(); // Actualizar select de clientes en "Nueva Cotización"
+        actualizarListaVehiculosClienteActual(clienteData.id); // Actualizar select de vehículos del cliente
+        actualizarTablaClientes(); // Actualizar tabla en "Gestión"
+        updateDashboard(); // Actualizar el dashboard
+        currentLoadedClientId = clienteData.id; // Mantener el cliente cargado
+        document.getElementById('cargarClienteSelect').value = clienteData.id; // Asegurar que el select refleje el cliente cargado
+        document.getElementById('cargarVehiculoClienteSelect').value = vehiculoData.chasis; // Asegurar que el select refleje el vehículo cargado
+      }
+
+      function cargarClientesGuardados() {
+        const clientesGuardadosStr = localStorage.getItem(LOCAL_STORAGE_CLIENTES_KEY);
+        if (clientesGuardadosStr) {
+          clientesGuardados = JSON.parse(clientesGuardadosStr);
+          actualizarListaClientes();
+        }
+      }
+
+      function actualizarListaClientes() {
+        const selectClientes = document.getElementById('cargarClienteSelect');
+        selectClientes.innerHTML = '<option value="">-- Seleccionar o Crear Nuevo Cliente --</option>';
+
+        clientesGuardados.forEach(cliente => {
+          const option = document.createElement('option');
+          option.value = cliente.id;
+          option.textContent = `${cliente.nombre} (${cliente.id})`;
+          selectClientes.appendChild(option);
+        });
+      }
+
+      let currentLoadedClientId = null; // Para saber qué cliente está cargado en "Nueva Cotización"
+
+      function cargarClienteSeleccionado() {
+        const identificacionSeleccionada = document.getElementById('cargarClienteSelect').value;
+        if (!identificacionSeleccionada) {
+            limpiarCamposCliente();
+            limpiarCamposVehiculo();
+            actualizarListaVehiculosClienteActual(''); // Limpiar lista de vehículos
+            currentLoadedClientId = null;
+            return;
+        }
+
+        const cliente = clientesGuardados.find(c => c.id === identificacionSeleccionada);
+        if (cliente) {
+          document.getElementById('tipoIdentificacion').value = cliente.tipo;
+          mostrarOcultarCampos(); // Para ajustar visibilidad de empresa
+          document.getElementById('identificacion').value = cliente.id;
+          document.getElementById('nombreCliente').value = cliente.nombre;
+          document.getElementById('nombreEmpresa').value = cliente.empresa || '';
+          document.getElementById('telefonoCliente').value = cliente.telefono || '';
+          document.getElementById('whatsappCliente').value = cliente.whatsapp || '';
+
+          currentLoadedClientId = cliente.id;
+          actualizarListaVehiculosClienteActual(cliente.id); // Cargar los vehículos del cliente en el otro select
+
+          // Cargar el ÚLTIMO vehículo asociado a este cliente, o limpiar si no hay
+          if (cliente.vehiculos && cliente.vehiculos.length > 0) {
+            const ultimoVehiculo = cliente.vehiculos[cliente.vehiculos.length - 1];
+            cargarCamposVehiculo(ultimoVehiculo);
+            document.getElementById('cargarVehiculoClienteSelect').value = ultimoVehiculo.chasis; // Seleccionar en el dropdown
+          } else {
+            limpiarCamposVehiculo();
+          }
+          alert(`Datos del cliente "${cliente.nombre}" cargados.`);
+        }
+      }
+
+      function actualizarListaVehiculosClienteActual(clienteId) {
+          const selectVehiculos = document.getElementById('cargarVehiculoClienteSelect');
+          selectVehiculos.innerHTML = '<option value="">-- Seleccionar o Crear Nuevo Vehículo --</option>';
+
+          const cliente = clientesGuardados.find(c => c.id === clienteId);
+          if (cliente && cliente.vehiculos) {
+              cliente.vehiculos.forEach(vehiculo => {
+                  const option = document.createElement('option');
+                  option.value = vehiculo.chasis;
+                  option.textContent = `${vehiculo.modelo} (${vehiculo.placa})`;
+                  selectVehiculos.appendChild(option);
+              });
+          }
+      }
+
+      function cargarVehiculoSeleccionadoCliente() {
+          const chasisSeleccionado = document.getElementById('cargarVehiculoClienteSelect').value;
+          if (!chasisSeleccionado || !currentLoadedClientId) {
+              limpiarCamposVehiculo();
+              return;
+          }
+
+          const cliente = clientesGuardados.find(c => c.id === currentLoadedClientId);
+          if (cliente && cliente.vehiculos) {
+              const vehiculo = cliente.vehiculos.find(v => v.chasis === chasisSeleccionado);
+              if (vehiculo) {
+                  cargarCamposVehiculo(vehiculo);
+                  alert(`Vehículo "${vehiculo.modelo} (${vehiculo.placa})" cargado.`);
+              }
+          }
+      }
+
+      // Funciones para la tabla de clientes en Gestión
+      function actualizarTablaClientes() {
+          const tableBody = document.getElementById('listaClientesTable');
+          tableBody.innerHTML = '';
+          const filtro = document.getElementById('filtroClientes').value.toLowerCase();
+
+          if (clientesGuardados.length === 0) {
+              tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay clientes registrados.</td></tr>';
+              return;
+          }
+
+          const clientesFiltrados = clientesGuardados.filter(cliente =>
+              (cliente.nombre && cliente.nombre.toLowerCase().includes(filtro)) ||
+              (cliente.empresa && cliente.empresa.toLowerCase().includes(filtro)) ||
+              (cliente.id && cliente.id.toLowerCase().includes(filtro)) ||
+              (cliente.telefono && cliente.telefono.toLowerCase().includes(filtro)) ||
+              (cliente.whatsapp && cliente.whatsapp.toLowerCase().includes(filtro))
+          );
+
+          if (clientesFiltrados.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No se encontraron clientes con ese filtro.</td></tr>';
+            return;
+          }
+
+          clientesFiltrados.forEach(cliente => {
+              const row = tableBody.insertRow();
+              row.dataset.clientId = cliente.id; // Para identificar la fila
+              row.onclick = () => cargarClienteEnGestion(cliente.id); // Para cargar cliente en la misma tabla o a cotización
+
+              const displayNombre = cliente.tipo === 'rnc' && cliente.empresa ? cliente.empresa : cliente.nombre;
+              const vehiculosDisplay = cliente.vehiculos.map(v => `${v.modelo} (${v.placa})`).join('; ');
+
+              row.insertCell().textContent = cliente.id;
+              row.insertCell().textContent = displayNombre;
+              row.insertCell().textContent = cliente.telefono || 'N/A';
+              row.insertCell().textContent = cliente.whatsapp || 'N/A';
+              row.insertCell().textContent = vehiculosDisplay || 'Ninguno';
+              const actionsCell = row.insertCell();
+              actionsCell.className = 'action-buttons';
+              const deleteBtn = document.createElement('button');
+              deleteBtn.textContent = 'Eliminar';
+              deleteBtn.style.backgroundColor = '#dc3545';
+              deleteBtn.onclick = (e) => { e.stopPropagation(); eliminarClienteDesdeTabla(cliente.id); };
+              actionsCell.appendChild(deleteBtn);
+          });
+      }
+
+      function filtrarClientes() {
+          actualizarTablaClientes();
+      }
+
+      function cargarClienteEnGestion(clientId) {
+          // Si el usuario hace clic en la fila de la tabla, puede llevarlo a la pestaña de Nueva Cotización para editarlo
+          const confirmacion = confirm('¿Deseas cargar este cliente y su último vehículo en la pestaña de "Nueva Cotización" para editarlo o crear una cotización?');
+          if (confirmacion) {
+              openTab(null, 'nuevaCotizacion');
+              const selectCliente = document.getElementById('cargarClienteSelect');
+              selectCliente.value = clientId;
+              cargarClienteSeleccionado();
+          }
+      }
+
+      function eliminarClienteDesdeTabla(clientId) {
+          const confirmacion = confirm(`¿Estás seguro de que quieres eliminar al cliente con ID ${clientId}? Esto borrará todos sus vehículos y las cotizaciones asociadas a este cliente.`);
+          if (confirmacion) {
+              clientesGuardados = clientesGuardados.filter(c => c.id !== clientId);
+              cotizacionesGuardadas = cotizacionesGuardadas.filter(cot => cot.cliente.identificacion !== clientId); // Eliminar cotizaciones asociadas
+              localStorage.setItem(LOCAL_STORAGE_CLIENTES_KEY, JSON.stringify(clientesGuardados));
+              localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
+              actualizarTablaClientes();
+              actualizarListaClientes(); // Update select in Nueva Cotización
+              actualizarListaCotizacionesHistorial(); // Update history table
+              updateDashboard();
+              alert('Cliente y sus cotizaciones asociadas eliminados exitosamente.');
+          }
+      }
+      // --- FIN FUNCIONES PARA CLIENTES Y VEHÍCULOS ASOCIADOS ---
+
+      // --- FUNCIONES PARA PIEZAS DE COTIZACIÓN ---
+      function agregarPieza(piezaData = null) {
+        const container = document.getElementById('piezasContainer');
+        const currentIndex = piezasCounter++;
+
+        const nombreVal = piezaData ? piezaData.nombre : '';
+        const cantidadVal = piezaData ? piezaData.cantidad : '1';
+        const costoVal = piezaData ? piezaData.costoUnitario : '0';
+        const margenVal = piezaData ? piezaData.margen : '1.3';
+
+        const html = `
+          <div id="pieza-${currentIndex}">
+            <label for="piezaNombre${currentIndex}">Nombre de la pieza</label>
+            <input type="text" id="piezaNombre${currentIndex}" value="${nombreVal}" required>
+            <span class="error-message">Este campo es obligatorio.</span>
+            <label for="piezaCantidad${currentIndex}">Cantidad</label>
+            <input type="number" id="piezaCantidad${currentIndex}" value="${cantidadVal}" min="1" required>
+            <span class="error-message">Ingrese un número positivo.</span>
+            <label for="piezaCosto${currentIndex}">Costo unitario (RD$)</label>
+            <input type="number" id="piezaCosto${currentIndex}" value="${costoVal}" min="0" step="0.01" required>
+            <span class="error-message">Ingrese un número positivo o cero.</span>
+            <label for="piezaMargen${currentIndex}">Margen de Ganancia (Ej: 1.3 para 30%)</label>
+            <input type="number" id="piezaMargen${currentIndex}" value="${margenVal}" min="1.0" step="0.01" required>
+            <span class="error-message">Margen debe ser 1.0 o mayor.</span>
+            <button type="button" onclick="eliminarPieza(${currentIndex})" style="background-color: #dc3545; margin-top: 10px;">Eliminar</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+        piezasActivas.push(currentIndex);
+        // Añadir listeners para validación a los nuevos campos
+        setupValidationListeners();
+      }
+
+      function eliminarPieza(indexAEliminar) {
+        const piezaDiv = document.getElementById(`pieza-${indexAEliminar}`);
+        if (piezaDiv) {
+          piezaDiv.remove();
+          piezasActivas = piezasActivas.filter(id => id !== indexAEliminar);
+        }
+        calcularTotal(); // Recalcular automáticamente
+      }
+      // --- FIN FUNCIONES PARA PIEZAS DE COTIZACIÓN ---
+
+      // --- FUNCIONES PARA CATÁLOGO DE SERVICIOS ---
+      function guardarServicioCatalogo() {
+          const nombre = document.getElementById('nombreServicioCatalogo').value.trim();
+          const horas = parseFloat(document.getElementById('horasServicioCatalogo').value);
+          const dificultad = parseFloat(document.getElementById('dificultadServicioCatalogo').value);
+          const experiencia = parseFloat(document.getElementById('experienciaServicioCatalogo').value);
+
+          if (!nombre || isNaN(horas) || horas <= 0 || isNaN(dificultad) || isNaN(experiencia)) {
+              alert('Por favor, completa todos los campos del servicio válidamente.');
+              return;
+          }
+
+          const servicio = { nombre, horas, dificultad, experiencia };
+
+          const existingIndex = serviciosCatalogo.findIndex(s => s.nombre.toLowerCase() === nombre.toLowerCase());
+          if (existingIndex > -1) {
+              serviciosCatalogo[existingIndex] = servicio;
+              alert(`Servicio "${nombre}" actualizado en el catálogo.`);
+          } else {
+              if (!isAppUnlocked && serviciosCatalogo.length >= MAX_SERVICIOS_DEMO) {
+                  alert(`¡Límite de Servicios en Catálogo Alcanzado! Esta es una versión demo y solo puede guardar hasta ${MAX_SERVICIOS_DEMO} servicios.`);
+                  return;
+              }
+              serviciosCatalogo.push(servicio);
+              alert(`Servicio "${nombre}" guardado en el catálogo.`);
+          }
+          localStorage.setItem(LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY, JSON.stringify(serviciosCatalogo));
+          actualizarListaServiciosCatalogo();
+          actualizarListaServiciosCatalogoEnNuevaCotizacion();
+      }
+
+      function cargarServiciosCatalogo() {
+          const serviciosGuardadosStr = localStorage.getItem(LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY);
+          if (serviciosGuardadosStr) {
+              serviciosCatalogo = JSON.parse(serviciosGuardadosStr);
+              actualizarListaServiciosCatalogo();
+          }
+      }
+
+      function actualizarListaServiciosCatalogo() {
+          const selectServicioGestion = document.getElementById('selectServicioCatalogoGestion');
+          selectServicioGestion.innerHTML = '<option value="">-- Seleccionar un servicio guardado --</option>';
+          serviciosCatalogo.forEach(s => {
+              const option = document.createElement('option');
+              option.value = s.nombre;
+              option.textContent = s.nombre;
+              selectServicioGestion.appendChild(option);
+          });
+      }
+
+      function actualizarListaServiciosCatalogoEnNuevaCotizacion() {
+          const selectServicioNuevaCotizacion = document.getElementById('selectServicioCatalogoNuevaCotizacion');
+          selectServicioNuevaCotizacion.innerHTML = '<option value="">-- Seleccionar un servicio --</option>';
+          serviciosCatalogo.forEach(s => {
+              const option = document.createElement('option');
+              option.value = s.nombre;
+              option.textContent = s.nombre;
+              selectServicioNuevaCotizacion.appendChild(option);
+          });
+      }
+
+      function previewServicioCatalogo() {
+          const nombreSeleccionado = document.getElementById('selectServicioCatalogoGestion').value;
+          const servicio = serviciosCatalogo.find(s => s.nombre === nombreSeleccionado);
+          if (servicio) {
+              document.getElementById('nombreServicioCatalogo').value = servicio.nombre;
+              document.getElementById('horasServicioCatalogo').value = servicio.horas;
+              document.getElementById('dificultadServicioCatalogo').value = servicio.dificultad;
+              document.getElementById('experienciaServicioCatalogo').value = servicio.experiencia;
+          } else {
+              document.getElementById('nombreServicioCatalogo').value = '';
+              document.getElementById('horasServicioCatalogo').value = '1';
+              document.getElementById('dificultadServicioCatalogo').value = '1.2';
+              document.getElementById('experienciaServicioCatalogo').value = '1.0';
+          }
+      }
+
+      function cargarServicioCatalogoNuevaCotizacion() {
+          const nombreSeleccionado = document.getElementById('selectServicioCatalogoNuevaCotizacion').value;
+          const servicio = serviciosCatalogo.find(s => s.nombre === nombreSeleccionado);
+          if (servicio) {
+              document.getElementById('trabajo').value = servicio.nombre;
+              document.getElementById('horas').value = servicio.horas;
+              document.getElementById('dificultad').value = servicio.dificultad;
+              document.getElementById('experiencia').value = servicio.experiencia;
+              alert(`Servicio "${servicio.nombre}" cargado en la cotización.`);
+          } else {
+              // Si se selecciona la opción por defecto, limpiar los campos del servicio
+              document.getElementById('trabajo').value = '';
+              document.getElementById('horas').value = '2';
+              document.getElementById('dificultad').value = '1.2';
+              document.getElementById('experiencia').value = '1.0';
+          }
+      }
+
+      function eliminarServicioCatalogo() {
+          const nombreSeleccionado = document.getElementById('selectServicioCatalogoGestion').value;
+          if (!nombreSeleccionado) {
+              alert('Por favor, selecciona un servicio para eliminar.');
+              return;
+          }
+          const confirmacion = confirm(`¿Estás seguro de que quieres eliminar el servicio "${nombreSeleccionado}" del catálogo?`);
+          if (confirmacion) {
+              serviciosCatalogo = serviciosCatalogo.filter(s => s.nombre !== nombreSeleccionado);
+              localStorage.setItem(LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY, JSON.stringify(serviciosCatalogo));
+              actualizarListaServiciosCatalogo();
+              actualizarListaServiciosCatalogoEnNuevaCotizacion();
+              previewServicioCatalogo(); // Limpiar campos de preview
+              alert('Servicio eliminado exitosamente.');
+          }
+      }
+      // --- FIN FUNCIONES PARA CATÁLOGO DE SERVICIOS ---
+
+      // --- FUNCIONES PARA CATÁLOGO DE PIEZAS ---
+      function guardarPiezaCatalogo() {
+          const nombre = document.getElementById('nombrePiezaCatalogo').value.trim();
+          const costo = parseFloat(document.getElementById('costoPiezaCatalogo').value);
+          const margen = parseFloat(document.getElementById('margenPiezaCatalogo').value);
+
+          if (!nombre || isNaN(costo) || costo < 0 || isNaN(margen) || margen < 1.0) {
+              alert('Por favor, completa todos los campos de la pieza válidamente.');
+              return;
+          }
+
+          const pieza = { nombre, costo, margen };
+
+          const existingIndex = piezasCatalogo.findIndex(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+          if (existingIndex > -1) {
+              piezasCatalogo[existingIndex] = pieza;
+              alert(`Pieza "${nombre}" actualizada en el catálogo.`);
+          } else {
+              if (!isAppUnlocked && piezasCatalogo.length >= MAX_PIEZAS_DEMO) {
+                  alert(`¡Límite de Piezas en Catálogo Alcanzado! Esta es una versión demo y solo puede guardar hasta ${MAX_PIEZAS_DEMO} piezas.`);
+                  return;
+              }
+              piezasCatalogo.push(pieza);
+              alert(`Pieza "${nombre}" guardada en el catálogo.`);
+          }
+          localStorage.setItem(LOCAL_STORAGE_PIEZAS_CATALOGO_KEY, JSON.stringify(piezasCatalogo));
+          actualizarListaPiezasCatalogo();
+          actualizarListaPiezasCatalogoEnNuevaCotizacion();
+      }
+
+      function cargarPiezasCatalogo() {
+          const piezasGuardadasStr = localStorage.getItem(LOCAL_STORAGE_PIEZAS_CATALOGO_KEY);
+          if (piezasGuardadasStr) {
+              piezasCatalogo = JSON.parse(piezasGuardadasStr);
+              actualizarListaPiezasCatalogo();
+          }
+      }
+
+      function actualizarListaPiezasCatalogo() {
+          const selectPiezaGestion = document.getElementById('selectPiezaCatalogoGestion');
+          selectPiezaGestion.innerHTML = '<option value="">-- Seleccionar una pieza guardada --</option>';
+          piezasCatalogo.forEach(p => {
+              const option = document.createElement('option');
+              option.value = p.nombre;
+              option.textContent = p.nombre;
+              selectPiezaGestion.appendChild(option);
+          });
+      }
+
+      function actualizarListaPiezasCatalogoEnNuevaCotizacion() {
+          const selectPiezaNuevaCotizacion = document.getElementById('selectPiezaCatalogoNuevaCotizacion');
+          selectPiezaNuevaCotizacion.innerHTML = '<option value="">-- Seleccionar una pieza --</option>';
+          piezasCatalogo.forEach(p => {
+              const option = document.createElement('option');
+              option.value = p.nombre;
+              option.textContent = p.nombre;
+              selectPiezaNuevaCotizacion.appendChild(option);
+          });
+      }
+
+      function previewPiezaCatalogo() {
+          const nombreSeleccionado = document.getElementById('selectPiezaCatalogoGestion').value;
+          const pieza = piezasCatalogo.find(p => p.nombre === nombreSeleccionado);
+          if (pieza) {
+              document.getElementById('nombrePiezaCatalogo').value = pieza.nombre;
+              document.getElementById('costoPiezaCatalogo').value = pieza.costo;
+              document.getElementById('margenPiezaCatalogo').value = pieza.margen;
+          } else {
+              document.getElementById('nombrePiezaCatalogo').value = '';
+              document.getElementById('costoPiezaCatalogo').value = '0';
+              document.getElementById('margenPiezaCatalogo').value = '1.3';
+          }
+      }
+
+      function cargarPiezaCatalogoNuevaCotizacion() {
+          const nombreSeleccionado = document.getElementById('selectPiezaCatalogoNuevaCotizacion').value;
+          const pieza = piezasCatalogo.find(p => p.nombre === nombreSeleccionado);
+          if (pieza) {
+              agregarPieza(pieza); // Crea una nueva fila de pieza en la cotización con los datos precargados
+              alert(`Pieza "${pieza.nombre}" cargada en la cotización.`);
+          } else if (nombreSeleccionado === "") {
+            // No hacer nada si se selecciona la opción "Seleccionar una pieza"
+          } else {
+              alert('Por favor, selecciona una pieza del catálogo para cargar.');
+          }
+      }
+
+      function eliminarPiezaCatalogo() {
+          const nombreSeleccionado = document.getElementById('selectPiezaCatalogoGestion').value;
+          if (!nombreSeleccionado) {
+              alert('Por favor, selecciona una pieza para eliminar.');
+              return;
+          }
+          const confirmacion = confirm(`¿Estás seguro de que quieres eliminar la pieza "${nombreSeleccionado}" del catálogo?`);
+          if (confirmacion) {
+              piezasCatalogo = piezasCatalogo.filter(p => p.nombre !== nombreSeleccionado);
+              localStorage.setItem(LOCAL_STORAGE_PIEZAS_CATALOGO_KEY, JSON.stringify(piezasCatalogo));
+              actualizarListaPiezasCatalogo();
+              actualizarListaPiezasCatalogoEnNuevaCotizacion();
+              previewPiezaCatalogo(); // Limpiar campos de preview
+              alert('Pieza eliminada exitosamente.');
+          }
+      }
+      // --- FIN FUNCIONES PARA CATÁLOGO DE PIEZAS ---
+
+      // --- FUNCIONES PARA CÁLCULOS Y COTIZACIONES ---
+      function calcularTotal() {
+        if (!validateAllFields('nuevaCotizacion')) {
+            alert('Por favor, corrige los campos obligatorios antes de calcular.');
+            return false;
+        }
+
+        const horas = parseFloat(document.getElementById('horas').value);
+        const dificultadVal = parseFloat(document.getElementById('dificultad').value);
+        const experienciaVal = parseFloat(document.getElementById('experiencia').value);
+        const aplicarItbis = configuracionGeneral.aplicarItbis;
+
+        const precioManoObra = horas * PRECIO_BASE_HORA * dificultadVal * experienciaVal;
+        let totalPiezasVenta = 0;
+        const piezasPrintBody = document.getElementById('piezasPrint');
+        piezasPrintBody.innerHTML = "";
+
+        // Añadir la fila de Mano de Obra primero a la impresión
+        document.getElementById('pHorasServicio').textContent = `${horas} hrs`;
+        document.getElementById('pPrecioManoObraUnit').textContent = `RD$ ${(precioManoObra / horas).toFixed(2)}`;
+        document.getElementById('pPrecioServicio').textContent = `RD$ ${precioManoObra.toFixed(2)}`;
+
+        let allPiecesValid = true;
+        piezasActivas.forEach(i => {
+          const nombreInput = document.getElementById(`piezaNombre${i}`);
+          const cantidadInput = document.getElementById(`piezaCantidad${i}`);
+          const costoInput = document.getElementById(`piezaCosto${i}`);
+          const margenInput = document.getElementById(`piezaMargen${i}`);
+
+          if (!nombreInput || !cantidadInput || !costoInput || !margenInput) {
+            allPiecesValid = false;
+            return;
+          }
+
+          const nombre = nombreInput.value.trim();
+          const cantidad = parseFloat(cantidadInput.value);
+          const costoUnitario = parseFloat(costoInput.value);
+          const margen = parseFloat(margenInput.value);
+
+          if (!nombre || isNaN(cantidad) || cantidad <= 0 || isNaN(costoUnitario) || costoUnitario < 0 || isNaN(margen) || margen < 1.0) {
+            alert(`Por favor, ingresa valores válidos (nombre, cantidad > 0, costo >= 0, margen >= 1.0) para la pieza "${nombre || 'sin nombre'}".`);
+            allPiecesValid = false;
+            return;
+          }
+
+          const precioVentaUnitario = costoUnitario * margen;
+          const subtotalPiezaVenta = cantidad * precioVentaUnitario;
+
+          totalPiezasVenta += subtotalPiezaVenta;
+
+          const fila = `<tr>
+                          <td>${nombre}</td>
+                          <td>${cantidad}</td>
+                          <td>RD$ ${precioVentaUnitario.toFixed(2)}</td>
+                          <td>RD$ ${subtotalPiezaVenta.toFixed(2)}</td>
+                        </tr>`;
+          piezasPrintBody.insertAdjacentHTML('beforeend', fila);
+        });
+
+        if (!allPiecesValid) {
+            return false;
+        }
+
+        const subtotalGeneral = precioManoObra + totalPiezasVenta;
+        let itbis = 0;
+        let totalConItbis = subtotalGeneral;
+
+        if (aplicarItbis === 'si') {
+          itbis = subtotalGeneral * ITBIS_RATE;
+          totalConItbis = subtotalGeneral + itbis;
+          document.getElementById('pItbisContainer').classList.remove('hidden');
+        } else {
+          document.getElementById('pItbisContainer').classList.add('hidden');
+        }
+
+        document.getElementById('resultado').textContent = `Total: RD$ ${totalConItbis.toFixed(2)}`;
+
+        // Llenar la sección de cotización para imprimir
+        document.getElementById('pNombreCliente').textContent = document.getElementById('nombreCliente').value.trim();
+        document.getElementById('pTipoIdentificacion').textContent = document.getElementById('tipoIdentificacion').value === 'rnc' ? 'RNC' : 'Cédula';
+        document.getElementById('pIdentificacion').textContent = document.getElementById('identificacion').value.trim();
+        document.getElementById('pTelefonoCliente').textContent = document.getElementById('telefonoCliente').value.trim();
+        document.getElementById('pWhatsappCliente').textContent = document.getElementById('whatsappCliente').value.trim();
+
+
+        const pNombreEmpresaContainer = document.getElementById('pNombreEmpresaContainer');
+        if (document.getElementById('tipoIdentificacion').value === 'rnc') {
+            document.getElementById('pNombreEmpresa').textContent = document.getElementById('nombreEmpresa').value.trim();
+            pNombreEmpresaContainer.classList.remove('hidden');
+        } else {
+            pNombreEmpresaContainer.classList.add('hidden');
+        }
+
+        document.getElementById('pTrabajo').textContent = document.getElementById('trabajo').value.trim();
+
+        document.getElementById('pVehiculoModelo').textContent = document.getElementById('vehiculoModelo').value.trim();
+        document.getElementById('pVehiculoAnio').textContent = document.getElementById('vehiculoAnio').value.trim();
+        document.getElementById('pVehiculoCombustible').textContent = document.getElementById('vehiculoCombustible').value.trim();
+        document.getElementById('pVehiculoChasis').textContent = document.getElementById('vehiculoChasis').value.trim();
+        document.getElementById('pVehiculoPlaca').textContent = document.getElementById('vehiculoPlaca').value.trim();
+
+        document.getElementById('pSubtotal').textContent = subtotalGeneral.toFixed(2);
+        document.getElementById('pItbis').textContent = itbis.toFixed(2);
+        document.getElementById('pTotal').textContent = totalConItbis.toFixed(2);
+        document.getElementById('pEmitidoPor').textContent = configuracionGeneral.emitidoPor;
+        document.getElementById('pFechaPrintHeader').textContent = new Date(document.getElementById('fecha').value).toLocaleDateString('es-DO', {day: '2-digit', month: '2-digit', year: 'numeric'});
+
+        const printNotesList = document.getElementById('printNotesList');
+        printNotesList.innerHTML = ''; // Limpiar antes de rellenar
+        const notasTexto = configuracionGeneral.notasImportantes;
+        const ulNotas = generarListaNotasParaImpresion(notasTexto);
+        Array.from(ulNotas.children).forEach(li => printNotesList.appendChild(li.cloneNode(true)));
+
+
+        // Actualizar el logo en la impresión
+        const printLogo = document.getElementById('printLogo');
+        if (logoBase64) {
+            printLogo.src = logoBase64;
+            printLogo.style.display = 'block';
+        } else {
+            printLogo.style.display = 'none';
+        }
+
+        return true;
+      }
+
+      function guardarCotizacion() {
+        if (!calcularTotal()) {
+            alert('No se puede guardar la cotización. Por favor, corrige los errores.');
+            return;
+        }
+
+        if (!isAppUnlocked && cotizacionesGuardadas.length >= MAX_COTIZACIONES_DEMO) {
+          alert(`¡Límite de Cotizaciones Alcanzado! Esta es una versión demo y solo puede guardar hasta ${MAX_COTIZACIONES_DEMO} cotizaciones. Elimina una cotización existente para guardar una nueva.`);
+          return;
+        }
+
+        const currentStatus = document.querySelector('input[name="cotizacionStatus"]:checked').value;
+
+        const cotizacion = {
+          id: `COT-${Date.now()}`,
+          fecha: document.getElementById('fecha').value,
+          cliente: {
+            tipoIdentificacion: document.getElementById('tipoIdentificacion').value,
+            identificacion: document.getElementById('identificacion').value.trim(),
+            nombreCliente: document.getElementById('nombreCliente').value.trim(),
+            nombreEmpresa: document.getElementById('nombreEmpresa').value.trim(),
+            telefono: document.getElementById('telefonoCliente').value.trim(),
+            whatsapp: document.getElementById('whatsappCliente').value.trim()
+          },
+          vehiculo: {
+            modelo: document.getElementById('vehiculoModelo').value.trim(),
+            anio: document.getElementById('vehiculoAnio').value.trim(),
+            combustible: document.getElementById('vehiculoCombustible').value.trim(),
+            chasis: document.getElementById('vehiculoChasis').value.trim(),
+            placa: document.getElementById('vehiculoPlaca').value.trim()
+          },
+          servicio: {
+            trabajo: document.getElementById('trabajo').value.trim(),
+            horas: parseFloat(document.getElementById('horas').value),
+            dificultad: parseFloat(document.getElementById('dificultad').value),
+            experiencia: parseFloat(document.getElementById('experiencia').value)
+          },
+          piezas: piezasActivas.map(i => {
+            const nombre = document.getElementById(`piezaNombre${i}`).value.trim();
+            const cantidad = parseFloat(document.getElementById(`piezaCantidad${i}`).value);
+            const costoUnitario = parseFloat(document.getElementById(`piezaCosto${i}`).value);
+            const margen = parseFloat(document.getElementById(`piezaMargen${i}`).value);
+            const precioVentaUnitario = costoUnitario * margen;
+            const subtotalPiezaVenta = cantidad * precioVentaUnitario;
+
+            return {
+              nombre: nombre,
+              cantidad: cantidad,
+              costoUnitario: costoUnitario,
+              margen: margen,
+              precioVentaUnitario: precioVentaUnitario,
+              subtotalPiezaVenta: subtotalPiezaVenta
+            };
+          }),
+          opcionesFacturacion: {
+            aplicarItbis: configuracionGeneral.aplicarItbis,
+            emitidoPor: configuracionGeneral.emitidoPor,
+            notasImportantes: configuracionGeneral.notasImportantes
+          },
+          subtotal: parseFloat(document.getElementById('pSubtotal').textContent),
+          itbis: parseFloat(document.getElementById('pItbis').textContent),
+          totalFinal: parseFloat(document.getElementById('pTotal').textContent),
+          status: currentStatus // Guardar el estado de la cotización
+        };
+
+        cotizacionesGuardadas.push(cotizacion);
+        localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
+        actualizarListaCotizacionesHistorial();
+        updateDashboard();
+        alert('Cotización guardada exitosamente. ID: ' + cotizacion.id + '\nTotal de cotizaciones guardadas: ' + cotizacionesGuardadas.length);
+      }
+
+      function cargarCotizacionesGuardadas() {
+        const cotizacionesGuardadasStr = localStorage.getItem(LOCAL_STORAGE_COTIZACIONES_KEY);
+        if (cotizacionesGuardadasStr) {
+          cotizacionesGuardadas = JSON.parse(cotizacionesGuardadasStr);
+          actualizarListaCotizacionesHistorial();
+        }
+      }
+
+      function actualizarListaCotizacionesHistorial() {
+          const tableBody = document.getElementById('listaCotizacionesTable');
+          tableBody.innerHTML = '';
+          const filtro = document.getElementById('filtroCotizaciones').value.toLowerCase();
+          const estadoFiltro = document.getElementById('filtroEstadoCotizacion').value;
+
+
+          if (cotizacionesGuardadas.length === 0) {
+              tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay cotizaciones guardadas.</td></tr>';
+              return;
+          }
+
+          const cotizacionesFiltradas = cotizacionesGuardadas.filter(cot => {
+            const matchesFilter = (
+                cot.id.toLowerCase().includes(filtro) ||
+                cot.cliente.nombre.toLowerCase().includes(filtro) ||
+                (cot.cliente.empresa && cot.cliente.empresa.toLowerCase().includes(filtro)) ||
+                cot.vehiculo.placa.toLowerCase().includes(filtro) ||
+                cot.vehiculo.modelo.toLowerCase().includes(filtro)
+            );
+            const matchesStatus = (estadoFiltro === 'todos' || cot.status === estadoFiltro);
+            return matchesFilter && matchesStatus;
+          }).sort((a,b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar por fecha, más reciente primero
+
+          if (cotizacionesFiltradas.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No se encontraron cotizaciones con ese filtro y estado.</td></tr>';
+            return;
+          }
+
+
+          cotizacionesFiltradas.forEach(cot => {
+              const row = tableBody.insertRow();
+              row.dataset.cotId = cot.id; // Para identificar la fila
+
+              const displayNombreCliente = cot.cliente.tipoIdentificacion === 'rnc' && cot.cliente.empresa ? cot.cliente.empresa : cot.cliente.nombreCliente;
+              const statusClass = `status-${cot.status || 'none'}`; // Clases CSS para colores de estado
+
+              row.insertCell().textContent = cot.id;
+              row.insertCell().textContent = cot.fecha;
+              row.insertCell().textContent = displayNombreCliente;
+              row.insertCell().textContent = `${cot.vehiculo.modelo} (${cot.vehiculo.placa})`;
+              row.insertCell().textContent = `RD$ ${cot.totalFinal.toFixed(2)}`;
+              const statusCell = row.insertCell();
+              statusCell.innerHTML = `<span class="${statusClass}">${cot.status.charAt(0).toUpperCase() + cot.status.slice(1)}</span>`;
+
+              const actionsCell = row.insertCell();
+              actionsCell.className = 'action-buttons';
+
+              const loadBtn = document.createElement('button');
+              loadBtn.textContent = 'Cargar';
+              loadBtn.style.backgroundColor = '#17a2b8';
+              loadBtn.onclick = (e) => { e.stopPropagation(); cargarCotizacionById(cot.id); };
+              actionsCell.appendChild(loadBtn);
+
+              const statusBtn = document.createElement('button');
+              statusBtn.textContent = 'Cambiar Estado';
+              statusBtn.style.backgroundColor = '#f0ad4e';
+              statusBtn.onclick = (e) => { e.stopPropagation(); cambiarEstadoCotizacion(cot.id); };
+              actionsCell.appendChild(statusBtn);
+
+              const deleteBtn = document.createElement('button');
+              deleteBtn.textContent = 'Eliminar';
+              deleteBtn.style.backgroundColor = '#dc3545';
+              deleteBtn.onclick = (e) => { e.stopPropagation(); eliminarCotizacionHistorial(cot.id); };
+              actionsCell.appendChild(deleteBtn);
+          });
+      }
+
+      function filtrarCotizaciones() {
+          actualizarListaCotizacionesHistorial();
+      }
+
+      function cargarCotizacionById(idCotizacion) {
+          const cotizacion = cotizacionesGuardadas.find(c => c.id === idCotizacion);
+          if (cotizacion) {
+              // Navegar a la pestaña de Nueva Cotización
+              openTab(null, 'nuevaCotizacion');
+
+              // Cargar datos del cliente
+              document.getElementById('tipoIdentificacion').value = cotizacion.cliente.tipoIdentificacion;
+              mostrarOcultarCampos();
+              document.getElementById('identificacion').value = cotizacion.cliente.identificacion;
+              document.getElementById('nombreCliente').value = cotizacion.cliente.nombreCliente;
+              document.getElementById('nombreEmpresa').value = cotizacion.cliente.nombreEmpresa || '';
+              document.getElementById('telefonoCliente').value = cotizacion.cliente.telefono || '';
+              document.getElementById('whatsappCliente').value = cotizacion.cliente.whatsapp || '';
+
+              // Cargar datos del vehículo
+              cargarCamposVehiculo(cotizacion.vehiculo);
+              currentLoadedClientId = cotizacion.cliente.identificacion; // Establecer el cliente cargado
+              actualizarListaVehiculosClienteActual(currentLoadedClientId); // Llenar el select de vehículos del cliente
+              document.getElementById('cargarVehiculoClienteSelect').value = cotizacion.vehiculo.chasis; // Seleccionar el vehículo cargado
+
+              // Seleccionar el cliente en el dropdown
+              document.getElementById('cargarClienteSelect').value = cotizacion.cliente.identificacion;
+
+              // Cargar datos del servicio
+              document.getElementById('trabajo').value = cotizacion.servicio.trabajo;
+              document.getElementById('horas').value = cotizacion.servicio.horas;
+              document.getElementById('dificultad').value = cotizacion.servicio.dificultad;
+              document.getElementById('experiencia').value = cotizacion.servicio.experiencia;
+
+              // Cargar piezas
+              piezasActivas = []; // Limpiar piezas actuales
+              document.getElementById('piezasContainer').innerHTML = ''; // Limpiar el DOM
+              cotizacion.piezas.forEach((pieza) => {
+                  agregarPieza(pieza); // Añade la estructura HTML para una nueva pieza con datos
+              });
+
+              // Cargar opciones de cotización y fecha
+              document.getElementById('fecha').value = cotizacion.fecha;
+              // Establecer el estado de la cotización
+              const statusRadios = document.querySelectorAll('input[name="cotizacionStatus"]');
+              statusRadios.forEach(radio => {
+                  radio.checked = (radio.value === (cotizacion.status || 'pendiente'));
+              });
+
+              // No recargar emitidoPor o aplicarItbis, ya vienen de configuración general
+              calcularTotal(); // Recalcular para mostrar el total en la interfaz y preparar la impresión
+              alert(`Cotización ID ${cotizacion.id} cargada exitosamente en la pestaña "Nueva Cotización".`);
+          } else {
+              alert('No se pudo encontrar la cotización seleccionada.');
+          }
+      }
+
+      function cambiarEstadoCotizacion(idCotizacion) {
+          const cotizacion = cotizacionesGuardadas.find(c => c.id === idCotizacion);
+          if (cotizacion) {
+              const newStatus = prompt(`Cambiar estado de la cotización ${idCotizacion}\nEstado actual: ${cotizacion.status}\n\nIntroduce el nuevo estado (pendiente, aprobada, rechazada):`).toLowerCase();
+
+              if (['pendiente', 'aprobada', 'rechazada'].includes(newStatus)) {
+                  cotizacion.status = newStatus;
+                  localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
+                  actualizarListaCotizacionesHistorial();
+                  updateDashboard();
+                  alert(`Estado de cotización ${idCotizacion} cambiado a "${newStatus}".`);
+              } else if (newStatus !== null) {
+                  alert('Estado inválido. Por favor, introduce "pendiente", "aprobada" o "rechazada".');
+              }
+          } else {
+              alert('Cotización no encontrada.');
+          }
+      }
+
+      function eliminarCotizacionHistorial(idCotizacion) {
+          const confirmacion = confirm(`¿Estás seguro de que quieres eliminar la cotización ID ${idCotizacion}?`);
+          if (confirmacion) {
+              cotizacionesGuardadas = cotizacionesGuardadas.filter(cot => cot.id !== idCotizacion);
+              localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
+              actualizarListaCotizacionesHistorial();
+              updateDashboard();
+              alert('Cotización eliminada exitosamente.');
+          }
+      }
+
+      function imprimirCotizacion() {
+        if (!calcularTotal()) {
+            alert('No se puede imprimir. Por favor, corrige los errores en la cotización.');
+            return;
+        }
+
+        const win = window.open('', '', 'width=900,height=700');
+        win.document.write(`<html><head><title>Cotización de Servicio</title>`);
+        win.document.write(`<style>
+          body { font-family: 'Arial', sans-serif; margin: 20px; color: #333; }
+          h1, h2, h3 { color: #2c3e50; margin-bottom: 10px; }
+          p { margin-bottom: 8px; font-size: 1.1em; }
+          p strong { color: #2c3e50; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.95em; }
+          th { background-color: #ecf0f1; color: #333; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .hidden { display: none; }
+
+          .print-header { text-align: center; margin-bottom: 30px; }
+          .print-header h1 { margin-bottom: 5px; color: #2c3e50; font-size: 2em; }
+          .print-header h2 { font-size: 1.5em; color: #34495e; }
+          .print-header img {
+            max-height: 80px;
+            margin-bottom: 10px;
+          }
+          .print-info { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+          .print-info div { flex: 1; padding: 0 10px; min-width: 45%; }
+          .print-section-title { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; font-size: 1.2em; color: #34495e; text-align: left; }
+          .print-totals { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; }
+          .print-totals p { text-align: right; font-size: 1.2em; margin-bottom: 5px; }
+          .print-final-total { font-size: 1.6em; font-weight: bold; color: #2c3e50; text-align: right; margin-top: 10px; }
+
+          .print-notes ul { list-style-type: disc; margin-left: 20px; padding: 0; font-size: 0.95em; line-height: 1.8; }
+          .print-notes h3 { text-align: left !important; }
+
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+        </style>`);
+        win.document.write(`</head><body>`);
+
+        let logoHtml = '';
+        if (logoBase64) {
+            logoHtml = `<img src="${logoBase64}" alt="Logo de la Empresa">`;
+        }
+        win.document.write(`
+          <div class="print-header">
+            ${logoHtml}
+            <h1>${configuracionGeneral.nombreEmpresaPrint}</h1>
+            <h2>Cotización de Servicio</h2>
+            <p>Fecha: ${document.getElementById('pFechaPrintHeader').textContent}</p>
+            <p>Emitido por: ${configuracionGeneral.emitidoPor}</p>
+          </div>
+          <hr />
+        `);
+
+        const printableContentElement = document.getElementById('printableArea');
+        const tempDiv = printableContentElement.cloneNode(true);
+        const headerToRemove = tempDiv.querySelector('.print-header');
+        const hrToRemove = tempDiv.querySelector('hr');
+        if (headerToRemove) headerToRemove.remove();
+        if (hrToRemove) hrToRemove.remove();
+
+        // Regenerar la lista de notas en el elemento clonado para asegurar que sea el contenido más reciente
+        const clonedPrintNotesList = tempDiv.querySelector('#printNotesList');
+        if (clonedPrintNotesList) {
+            clonedPrintNotesList.innerHTML = ''; // Limpiar antes de rellenar
+            const ulNotas = generarListaNotasParaImpresion(configuracionGeneral.notasImportantes);
+            Array.from(ulNotas.children).forEach(li => clonedPrintNotesList.appendChild(li.cloneNode(true)));
+        }
+
+        win.document.write(tempDiv.innerHTML);
+
+        win.document.write(`</body></html>`);
+        win.document.close();
+        win.print();
+      }
+
+      function generarListaNotasParaImpresion(notasTexto) {
+          const ul = document.createElement('ul');
+          ul.style = "list-style-type: disc; margin-left: 20px; font-size: 0.95em; line-height: 1.8;";
+          const notasArray = notasTexto.split('\n').filter(line => line.trim() !== '');
+          notasArray.forEach(nota => {
+              const li = document.createElement('li');
+              li.textContent = nota.trim();
+              ul.appendChild(li);
+          });
+          return ul;
+      }
+      // --- FIN FUNCIONES PARA CÁLCULOS Y COTIZACIONES ---
+
+      // --- FUNCIONES PARA EL SISTEMA DE DESBLOQUEO ---
+      function checkUnlockStatus() {
+        const unlocked = localStorage.getItem(LOCAL_STORAGE_UNLOCKED_KEY);
+        if (unlocked === 'true') {
+          isAppUnlocked = true;
+        }
+      }
+
+      function unlockApp() {
+        const enteredKey = prompt('Por favor, introduce la clave de desbloqueo:');
+        if (enteredKey && MASTER_KEYS.includes(enteredKey.toUpperCase())) {
+          isAppUnlocked = true;
+          localStorage.setItem(LOCAL_STORAGE_UNLOCKED_KEY, 'true');
+          alert('¡Felicidades! La aplicación ha sido desbloqueada a la versión completa. Los límites de clientes, cotizaciones, servicios y piezas en catálogo han sido removidos.');
+          updateUnlockUI();
+        } else if (enteredKey !== null) {
+          alert('Clave incorrecta. La aplicación permanece en modo demo.');
+        }
+      }
+
+      function updateUnlockUI() {
+          const unlockStatusElement = document.getElementById('unlockStatus');
+          const unlockButton = document.getElementById('unlockAppBtn');
+          if (isAppUnlocked) {
+              unlockStatusElement.textContent = 'Estado: Versión COMPLETA (Límites Removidos)';
+              unlockStatusElement.style.color = '#28a745';
+              if (unlockButton) unlockButton.style.display = 'none';
+          } else {
+              unlockStatusElement.textContent = `Estado: Versión DEMO (Máx. ${MAX_CLIENTES_DEMO} Clientes, ${MAX_COTIZACIONES_DEMO} Cotizaciones, ${MAX_SERVICIOS_DEMO} Servicios, ${MAX_PIEZAS_DEMO} Piezas)`;
+              unlockStatusElement.style.color = '#dc3545';
+              if (unlockButton) unlockButton.style.display = 'block';
+          }
+      }
+      // --- FIN FUNCIONES PARA EL SISTEMA DE DESBLOQUEO ---
+
+    </script>
+  </body>
+</html>
