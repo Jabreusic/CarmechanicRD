@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -2914,7 +2914,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
 
         win.document.write(tempDiv.innerHTML);
 
-        win.document.write(`</body></html>`);
+        win.document.write('</body></ht' + 'ml>');
         win.document.close();
         win.print();
         }
@@ -3154,7 +3154,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
           </style>`);
           win.document.write(`</head><body>`);
           win.document.write(document.getElementById('printableFacturaArea').innerHTML);
-          win.document.write(`</body></html>`);
+          win.document.write('</body></ht' + 'ml>');
           win.document.close();
           win.print();
         }
