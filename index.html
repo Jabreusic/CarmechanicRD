@@ -1395,7 +1395,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
         <div class="print-header">
           <img id="fPrintLogo" src="" alt="Logo">
           <h1 id="fNombreEmpresaPrint"></h1>
-          <p class="factura-badge">FACTURA</p>
+          <p class="factura-badge" id="fTipoComprobante">FACTURA</p>
           <p>Nº: <strong><span id="fNumeroFactura"></span></strong> &nbsp;|&nbsp; Fecha: <span id="fFechaPrint"></span></p>
           <p>Emitido por: <span id="fEmitidoPor"></span></p>
           <p>Ref. Cotización: <span id="fRefCotizacion"></span></p>
@@ -1429,12 +1429,12 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
         <div class="print-totals">
           <p><strong>Subtotal:</strong> RD$ <span id="fSubtotal"></span></p>
           <p id="fItbisContainer" class="hidden"><strong>ITBIS (18%):</strong> RD$ <span id="fItbis"></span></p>
-          <p class="print-final-total"><strong>TOTAL FACTURA:</strong> RD$ <span id="fTotal"></span></p>
+          <p class="print-final-total"><strong id="fTotalLabel">TOTAL FACTURA:</strong> RD$ <span id="fTotal"></span></p>
         </div>
         <div class="print-notes">
           <h3>Condiciones:</h3>
           <ul>
-            <li>Esta factura constituye comprobante de los servicios prestados.</li>
+            <li id="fComprobanteNota">Esta factura constituye comprobante de los servicios prestados.</li>
             <li>Garantía de 30 días o 1,000 km sobre el trabajo realizado (lo que ocurra primero).</li>
             <li>Pagado en su totalidad a la entrega del vehículo.</li>
           </ul>
@@ -1446,52 +1446,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
       </div>
     </div>
     <script>
-      const PRECIO_BASE_HORA = 750;
-      const ITBIS_RATE = 0.18;
-      let piezasCounter = 0;
-      let piezasActivas = [];
-
-      // Constantes para las claves de localStorage
-      const LOCAL_STORAGE_EMPRESA_KEY = 'datosEmpresaMecanico';
-      const LOCAL_STORAGE_CLIENTES_KEY = 'clientesMecanico';
-      const LOCAL_STORAGE_COTIZACIONES_KEY = 'cotizacionesMecanico';
-      const LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY = 'serviciosCatalogoMecanico';
-      const LOCAL_STORAGE_PIEZAS_CATALOGO_KEY = 'piezasCatalogoMecanico';
-      const LOCAL_STORAGE_NOTAS_IMPORTANTES_KEY = 'notasImportantesMecanico';
-      const LOCAL_STORAGE_CONFIG_KEY = 'configuracionGeneralMecanico'; // Nueva clave para configuración general
-      const LOCAL_STORAGE_FACTURAS_KEY = 'facturasMecanico';
-
-      // --- CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
-      const MASTER_KEYS = ['KJH8P9S', 'XYZ1A2B', 'CDE3F4G', 'MNO5P6Q', 'RST7U8V'];
-      const LOCAL_STORAGE_UNLOCKED_KEY = 'appUnlocked';
-      let isAppUnlocked = false;
-
-      const MAX_CLIENTES_DEMO = 5;
-      const MAX_COTIZACIONES_DEMO = 5;
-      const MAX_SERVICIOS_DEMO = 5;
-      const MAX_PIEZAS_DEMO = 10;
-      const MAX_FACTURAS_DEMO = 10;
-      // --- FIN CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
-
-      let clientesGuardados = [];
-      let cotizacionesGuardadas = [];
-      let serviciosCatalogo = [];
-      let piezasCatalogo = [];
-      let facturasGuardadas = [];
-      let logoBase64 = null; // Variable para almacenar el logo en Base64
-      let configuracionGeneral = {
-          nombreEmpresaPrint: "Mi Taller Mecánico S.R.L.",
-          aplicarItbis: "si",
-          emitidoPor: "[Tu Nombre/Nombre de la Empresa]",
-          notasImportantes: `Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.
-Los precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.
-Se requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.
-El tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.
-La garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.
-No nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.
-Cualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.
-La entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.`
-      };
+      // ...existing code...
 
 
       // --- Inicialización al cargar la página ---
@@ -1992,7 +1947,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
         });
       }
 
-      let currentLoadedClientId = null; // Para saber qué cliente está cargado en "Nueva Cotización"
+      // ...existing code...
 
       function cargarClienteSeleccionado() {
         const identificacionSeleccionada = document.getElementById('cargarClienteSelect').value;
@@ -3078,6 +3033,17 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
             } else {
               nombreEmpresaContainer.classList.add('hidden');
             }
+
+            // --- Comprobador de RNC y NCF ---
+            // Si NO hay RNC o NCF, el documento se llama Comprobante de Pago
+            const tieneRNC = !!(factura.rncEmpresa || (factura.cliente && factura.cliente.tipoIdentificacion === 'rnc'));
+            const tieneNCF = !!(factura.ncfFactura);
+            const tipoComprobante = (tieneRNC && tieneNCF) ? 'FACTURA' : 'COMPROBANTE DE PAGO';
+            document.getElementById('fTipoComprobante').textContent = tipoComprobante;
+            document.getElementById('fTotalLabel').textContent = (tipoComprobante === 'FACTURA') ? 'TOTAL FACTURA:' : 'TOTAL COMPROBANTE:';
+            document.getElementById('fComprobanteNota').textContent = (tipoComprobante === 'FACTURA')
+              ? 'Esta factura constituye comprobante de los servicios prestados.'
+              : 'Este comprobante de pago no es válido como factura fiscal. Solo acredita el pago de los servicios detallados.';
 
             const detalleBody = document.getElementById('fDetalleFactura');
             detalleBody.innerHTML = '';
@@ -4228,49 +4194,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
       </div>
     </div>
     <script>
-      const PRECIO_BASE_HORA = 750;
-      const ITBIS_RATE = 0.18;
-      let piezasCounter = 0;
-      let piezasActivas = [];
-
-      // Constantes para las claves de localStorage
-      const LOCAL_STORAGE_EMPRESA_KEY = 'datosEmpresaMecanico';
-      const LOCAL_STORAGE_CLIENTES_KEY = 'clientesMecanico';
-      const LOCAL_STORAGE_COTIZACIONES_KEY = 'cotizacionesMecanico';
-      const LOCAL_STORAGE_SERVICIOS_CATALOGO_KEY = 'serviciosCatalogoMecanico';
-      const LOCAL_STORAGE_PIEZAS_CATALOGO_KEY = 'piezasCatalogoMecanico';
-      const LOCAL_STORAGE_NOTAS_IMPORTANTES_KEY = 'notasImportantesMecanico';
-      const LOCAL_STORAGE_CONFIG_KEY = 'configuracionGeneralMecanico'; // Nueva clave para configuración general
-
-      // --- CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
-      const MASTER_KEYS = ['KJH8P9S', 'XYZ1A2B', 'CDE3F4G', 'MNO5P6Q', 'RST7U8V'];
-      const LOCAL_STORAGE_UNLOCKED_KEY = 'appUnlocked';
-      let isAppUnlocked = false;
-
-      const MAX_CLIENTES_DEMO = 5;
-      const MAX_COTIZACIONES_DEMO = 5;
-      const MAX_SERVICIOS_DEMO = 5;
-      const MAX_PIEZAS_DEMO = 10;
-      // --- FIN CONSTANTES Y VARIABLES PARA EL SISTEMA DE DESBLOQUEO Y LÍMITES ---
-
-      let clientesGuardados = [];
-      let cotizacionesGuardadas = [];
-      let serviciosCatalogo = [];
-      let piezasCatalogo = [];
-      let logoBase64 = null; // Variable para almacenar el logo en Base64
-      let configuracionGeneral = {
-          nombreEmpresaPrint: "Mi Taller Mecánico S.R.L.",
-          aplicarItbis: "si",
-          emitidoPor: "[Tu Nombre/Nombre de la Empresa]",
-          notasImportantes: `Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.
-Los precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.
-Se requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.
-El tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.
-La garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.
-No nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.
-Cualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.
-La entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.`
-      };
+      // ...existing code...
 
 
       // --- Inicialización al cargar la página ---
@@ -4713,7 +4637,7 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
         });
       }
 
-      let currentLoadedClientId = null; // Para saber qué cliente está cargado en "Nueva Cotización"
+      // ...existing code...
 
       function cargarClienteSeleccionado() {
         const identificacionSeleccionada = document.getElementById('cargarClienteSelect').value;
