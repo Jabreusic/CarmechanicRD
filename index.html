@@ -1447,6 +1447,52 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
     </div>
     <script>
       // ...existing code...
+      // --- OPTIMIZACIÓN DE RENDERIZADO DE LISTAS ---
+      // Cache para arrays ordenados
+      let cacheClientesOrdenados = null;
+      let cacheCotizacionesPendientes = null;
+      let cacheCotizacionesAprobadas = null;
+      let cacheFacturasRecientes = null;
+
+      function getClientesOrdenados() {
+          if (!cacheClientesOrdenados) {
+              cacheClientesOrdenados = clientesGuardados.slice().sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+          }
+          return cacheClientesOrdenados;
+      }
+      function getCotizacionesPendientes() {
+          if (!cacheCotizacionesPendientes) {
+              cacheCotizacionesPendientes = cotizacionesGuardadas.filter(cot => cot.status === 'pendiente').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          }
+          return cacheCotizacionesPendientes;
+      }
+      function getCotizacionesAprobadas() {
+          if (!cacheCotizacionesAprobadas) {
+              cacheCotizacionesAprobadas = cotizacionesGuardadas.filter(cot => cot.status === 'aprobada').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          }
+          return cacheCotizacionesAprobadas;
+      }
+      function getFacturasRecientes() {
+          if (!cacheFacturasRecientes) {
+              cacheFacturasRecientes = facturasGuardadas.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          }
+          return cacheFacturasRecientes;
+      }
+      // Llama estas funciones en vez de hacer slice/sort/filter repetidos en cada render.
+      // Limpia los caches cuando se agregue/edite/elimine un elemento:
+      function limpiarCachesListas() {
+          cacheClientesOrdenados = null;
+          cacheCotizacionesPendientes = null;
+          cacheCotizacionesAprobadas = null;
+          cacheFacturasRecientes = null;
+      }
+      // Ejemplo de uso en actualizarListaClientes:
+      function actualizarListaClientes() {
+          const lista = getClientesOrdenados();
+          // ...renderiza la lista...
+      }
+      // Llama limpiarCachesListas() después de agregar/editar/eliminar clientes, cotizaciones o facturas.
+      // ...existing code...
 
 
       // --- Inicialización al cargar la página ---
@@ -3513,6 +3559,18 @@ La entrega del vehículo se realizará una vez el monto total de la factura haya
       }
       input:invalid:not(:placeholder-shown) + .error-message, select:invalid:not(:placeholder-shown) + .error-message, textarea:invalid:not(:placeholder-shown) + .error-message {
           display: block;
+      }
+      .invalid-label {
+          color: #dc3545 !important;
+          font-weight: bold;
+          animation: shake 0.2s 2;
+      }
+      @keyframes shake {
+          0% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          50% { transform: translateX(4px); }
+          75% { transform: translateX(-4px); }
+          100% { transform: translateX(0); }
       }
 
       /* Dashboard specific styles */
