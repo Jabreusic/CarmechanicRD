@@ -4953,8 +4953,11 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .diagnostic-panel-header,
   .diagnostic-signature-header,
   .diagnostic-card-footer,
-  .app-modal-header,
   .app-modal-footer { flex-direction: column; align-items: stretch; }
+  .app-modal-header {
+    flex-direction: row;
+    align-items: center;
+  }
   .diagnostic-photo-actions { grid-template-columns: 1fr; }
   .vehicle-signal-card,
   .diagnostic-signature-actions { flex-direction: column; }
