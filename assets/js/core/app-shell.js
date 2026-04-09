@@ -82,12 +82,23 @@
     document.body.classList.toggle('modal-open', Boolean(visibleModal));
   }
 
+  function ensureModalRoot(modal) {
+    if (!(modal instanceof HTMLElement)) {
+      return;
+    }
+
+    if (modal.dataset.modalRoot === 'body' && modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+  }
+
   function openAccessibleModal(modalId, focusSelector = '.modal-close-btn, button, input, select, textarea, [tabindex]:not([tabindex="-1"])') {
     const modal = document.getElementById(modalId);
     if (!modal) {
       return;
     }
 
+    ensureModalRoot(modal);
     lastFocusedElementBeforeModal = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
