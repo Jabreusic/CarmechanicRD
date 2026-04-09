@@ -3398,6 +3398,13 @@ button:active {
   overflow: hidden;
 }
 
+.modal-open .app-mobile-dock,
+.modal-open .app-mobile-workflow-strip {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(120%);
+}
+
 .diagnostic-visibility-toggle {
   display: flex;
   align-items: center;
