@@ -2089,16 +2089,27 @@ button:active {
 
   .app-modal-body {
     padding-top: 16px;
-    padding-bottom: 18px;
+    padding-bottom: 104px;
   }
 
   .client-workspace-modal-body {
-    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+    padding-bottom: max(104px, calc(88px + env(safe-area-inset-bottom, 0px)));
   }
 
   .app-modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-wrap: wrap;
     padding-top: 14px;
-    padding-bottom: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(10px);
+  }
+
+  .app-modal-footer button {
+    flex: 1 1 100%;
+    width: 100%;
   }
 
   .record-id-stack {
