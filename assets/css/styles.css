@@ -4902,6 +4902,21 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     margin-top: 0;
     min-height: 50px;
   }
+  .quote-module-actionbar.module-v2-actionbar {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    grid-auto-flow: row;
+    grid-auto-columns: 1fr;
+    overflow: visible;
+    padding: 0;
+    margin-top: 18px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
   .client-form-grid,
   .client-hub-workspace,
   .client-detail-grid {
