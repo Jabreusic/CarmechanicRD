@@ -87,7 +87,7 @@ body {
 h1, h2, h3 {
   font-family: var(--font-heading);
   color: var(--primary);
-  text-align: center;
+  text-align: left;
   margin-bottom: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
@@ -4960,6 +4960,12 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     flex-direction: column;
     align-items: stretch;
   }
+  .entry-form-card,
+  .entry-summary-card,
+  .diagnostic-signature-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
   .sub-tabs { padding: 8px 8px 0; overflow-x: auto; flex-wrap: nowrap; }
   .sub-tab-button { white-space: nowrap; font-size: 0.78em; padding: 7px 10px; }
   .cot-steps.operations-module-nav {
@@ -4999,6 +5005,22 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .diagnostic-photo-actions { grid-template-columns: 1fr; }
   .vehicle-signal-card,
   .diagnostic-signature-actions { flex-direction: column; }
+  .seguimiento-timeline-block::before {
+    display: none;
+  }
+  .seguimiento-quality-grid,
+  .seguimiento-quality-fields,
+  .salida-checklist-grid {
+    grid-template-columns: 1fr;
+  }
+  .seguimiento-quality-item,
+  .salida-check-item {
+    align-items: flex-start;
+    padding: 13px 14px;
+  }
+  .diagnostic-signature-canvas {
+    min-height: 180px;
+  }
   .diagnostic-card-footer button,
   .diagnostic-panel-header button,
   .diagnostic-signature-actions button,
