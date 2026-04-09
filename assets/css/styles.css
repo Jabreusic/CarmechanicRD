@@ -2,6 +2,7 @@
    VARIABLES CSS Y RESET
 ============================================= */
 :root {
+  color-scheme: light;
   --primary:       #1e3a5f;
   --primary-light: #2d5490;
   --primary-dark:  #142844;
