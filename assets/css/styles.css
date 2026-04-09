@@ -4705,27 +4705,60 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     left: 10px;
   }
   body { padding: 0 0 calc(104px + env(safe-area-inset-bottom, 0px)); }
-  .app-header { padding: 14px 16px; position: static; }
+  .app-header {
+    padding: 10px 12px;
+    position: static;
+  }
   .app-header-inner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .app-header-right {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .app-header-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .app-brand-shell {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
   }
-  .app-brand-title-row { align-items: flex-start; }
-  .app-header-logo { max-width: 140px; max-height: 46px; }
-  .app-header h1 { font-size: 1.3em; }
-  .app-header-config-btn { width: 100%; }
+  .app-header-right {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .app-header-overview {
+    display: none;
+  }
+  .app-brand-shell {
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 16px;
+  }
+  .app-brand-title-row {
+    align-items: center;
+    gap: 8px;
+  }
+  .app-brand-kicker,
+  .app-header .app-subtitle {
+    display: none;
+  }
+  .app-brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    font-size: 1rem;
+  }
+  .app-header-logo-wrap {
+    padding: 6px 8px;
+    border-radius: 12px;
+  }
+  .app-header-logo { max-width: 108px; max-height: 34px; }
+  .app-header h1 {
+    font-size: 1.08rem;
+    line-height: 1.05;
+  }
+  .app-header-config-btn {
+    width: auto;
+    min-width: 44px;
+    padding: 9px 12px;
+    font-size: 0.82rem;
+  }
   .app-layout {
     grid-template-columns: 1fr;
     gap: 12px;
