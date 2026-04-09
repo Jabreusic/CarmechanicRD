@@ -44,6 +44,131 @@
   --font-body:     'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
 }
 
+html[data-app-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-app-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.10), transparent 24%),
+    radial-gradient(circle at right 20%, rgba(232, 75, 48, 0.08), transparent 26%),
+    linear-gradient(180deg, #08111d 0%, #0c1726 46%, #111f31 100%);
+  color: #dbe5f1;
+}
+
+html[data-app-theme="dark"] .app-header {
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 34%),
+    radial-gradient(circle at right center, rgba(232,75,48,0.18), transparent 28%),
+    linear-gradient(135deg, #08101a 0%, #12253d 44%, #1c3c61 100%);
+}
+
+html[data-app-theme="dark"] .shell-sidebar-card,
+html[data-app-theme="dark"] .section,
+html[data-app-theme="dark"] .tab-content,
+html[data-app-theme="dark"] .config-card,
+html[data-app-theme="dark"] .dashboard-card,
+html[data-app-theme="dark"] .dashboard-queue-column,
+html[data-app-theme="dark"] .entry-form-card,
+html[data-app-theme="dark"] .entry-summary-card,
+html[data-app-theme="dark"] .module-v2-block,
+html[data-app-theme="dark"] .client-form-card,
+html[data-app-theme="dark"] .client-hub-list-card,
+html[data-app-theme="dark"] .client-hub-detail-card,
+html[data-app-theme="dark"] .diagnostic-context-card,
+html[data-app-theme="dark"] .billing-stat-card,
+html[data-app-theme="dark"] .billing-panel-card,
+html[data-app-theme="dark"] .app-modal-dialog,
+html[data-app-theme="dark"] .app-mobile-workflow-strip,
+html[data-app-theme="dark"] .module-nav-button,
+html[data-app-theme="dark"] .data-table-container {
+  background: linear-gradient(180deg, rgba(16, 27, 43, 0.98) 0%, rgba(12, 22, 36, 0.96) 100%);
+  border-color: rgba(100, 116, 139, 0.34);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+html[data-app-theme="dark"] .tabs,
+html[data-app-theme="dark"] .sub-tabs,
+html[data-app-theme="dark"] .app-mobile-dock,
+html[data-app-theme="dark"] .app-notice-card,
+html[data-app-theme="dark"] .dashboard-mobile-quickcard,
+html[data-app-theme="dark"] .billing-pending-item,
+html[data-app-theme="dark"] .seguimiento-quality-item,
+html[data-app-theme="dark"] .salida-check-item,
+html[data-app-theme="dark"] .diagnostic-filter-chip,
+html[data-app-theme="dark"] .record-id-chip,
+html[data-app-theme="dark"] .print-editor-card,
+html[data-app-theme="dark"] .print-editor-card-preview {
+  background: linear-gradient(180deg, rgba(18, 30, 47, 0.96) 0%, rgba(12, 22, 36, 0.94) 100%);
+  border-color: rgba(100, 116, 139, 0.34);
+}
+
+html[data-app-theme="dark"] input,
+html[data-app-theme="dark"] select,
+html[data-app-theme="dark"] textarea {
+  background-color: #0b1422;
+  color: #e5edf7;
+  border-color: #334155;
+}
+
+html[data-app-theme="dark"] input::placeholder,
+html[data-app-theme="dark"] textarea::placeholder {
+  color: #8ca0b8;
+}
+
+html[data-app-theme="dark"] h1,
+html[data-app-theme="dark"] h2,
+html[data-app-theme="dark"] h3,
+html[data-app-theme="dark"] h4,
+html[data-app-theme="dark"] label,
+html[data-app-theme="dark"] strong,
+html[data-app-theme="dark"] .module-main-tab-label,
+html[data-app-theme="dark"] .dashboard-kpi-value,
+html[data-app-theme="dark"] .dashboard-card h3,
+html[data-app-theme="dark"] .print-entry-card h4 {
+  color: #f3f7fb;
+}
+
+html[data-app-theme="dark"] .text-tip,
+html[data-app-theme="dark"] .config-hint,
+html[data-app-theme="dark"] .shell-sidebar-kicker,
+html[data-app-theme="dark"] .sidebar-nav-label,
+html[data-app-theme="dark"] .app-header-overview-label,
+html[data-app-theme="dark"] .dashboard-kpi-label,
+html[data-app-theme="dark"] .dashboard-visit-progress-text,
+html[data-app-theme="dark"] .app-mobile-dock-label,
+html[data-app-theme="dark"] .app-mobile-workflow-meta,
+html[data-app-theme="dark"] .app-subtitle,
+html[data-app-theme="dark"] .app-brand-kicker {
+  color: #9eb0c5;
+}
+
+html[data-app-theme="dark"] .tab-button,
+html[data-app-theme="dark"] .sub-tab-button,
+html[data-app-theme="dark"] .diagnostic-filter-chip,
+html[data-app-theme="dark"] .app-header-config-btn,
+html[data-app-theme="dark"] .modal-close-btn {
+  color: #dbe5f1;
+}
+
+html[data-app-theme="dark"] .dashboard-progress-track,
+html[data-app-theme="dark"] .entry-print-diagram-frame,
+html[data-app-theme="dark"] .diagnostic-signature-canvas {
+  background: #0b1422;
+  border-color: #334155;
+}
+
+html[data-app-theme="dark"] th,
+html[data-app-theme="dark"] td,
+html[data-app-theme="dark"] .data-table th,
+html[data-app-theme="dark"] .data-table td {
+  border-color: rgba(100, 116, 139, 0.34);
+}
+
+html[data-app-theme="dark"] tr:nth-child(even) {
+  background-color: rgba(15, 23, 42, 0.42);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;

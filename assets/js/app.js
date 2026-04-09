@@ -36,6 +36,7 @@ const DEFAULT_PRINT_TEMPLATE_CONFIG = {
   showKicker: true,
   footerText: 'Documento generado automáticamente desde CarsystemRD para control interno y entrega al cliente.'
 };
+const APP_THEME_OPTIONS = ['light', 'dark', 'system'];
 const DIAGNOSTIC_PARTS = [
   { id: 'motor', nombre: 'Motor' },
   { id: 'frenos', nombre: 'Frenos' },
@@ -160,9 +161,12 @@ let configuracionGeneral = {
   kmGarantiaServicio: 1000,
   diasRecordatorioMantenimiento: 180,
   horasAlertaRetraso: 24,
+  themePreference: 'light',
   plantillaImpresion: { ...DEFAULT_PRINT_TEMPLATE_CONFIG },
   notasImportantes: `Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.\nLos precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.\nSe requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.\nEl tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.\nLa garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.\nNo nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.\nCualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.\nLa entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.`
 };
+
+let appThemeMediaQuery = null;
 
 let piezasCounter = 0;
 let piezasActivas = [];
@@ -735,6 +739,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('pFechaPrintHeader').textContent = `${day}/${month}/${year}`;
 
   agregarPieza();
+  initializeAppThemePreference();
   cargarConfiguracionGeneral();
   cargarClientesGuardados();
   cargarCotizacionesGuardadas();
@@ -5880,8 +5885,10 @@ function guardarDatosConfiguracion() {
   configuracionGeneral.kmGarantiaServicio = Number(document.getElementById('kmGarantiaServicio').value) || 1000;
   configuracionGeneral.diasRecordatorioMantenimiento = Number(document.getElementById('diasRecordatorioMantenimiento').value) || 180;
   configuracionGeneral.horasAlertaRetraso = Number(document.getElementById('horasAlertaRetraso').value) || 24;
+  configuracionGeneral.themePreference = normalizeAppThemePreference(document.getElementById('appThemePreference').value);
   configuracionGeneral.plantillaImpresion = readPrintTemplateConfigFromForm();
   configuracionGeneral.notasImportantes = document.getElementById('notasImportantes').value;
+  applyAppThemePreference(configuracionGeneral.themePreference);
 
   try {
     const persistedLogo = getConfiguredPrintLogo();
@@ -5919,6 +5926,9 @@ function cargarConfiguracionGeneral() {
   document.getElementById('kmGarantiaServicio').value = Number(configuracionGeneral.kmGarantiaServicio) || 1000;
   document.getElementById('diasRecordatorioMantenimiento').value = Number(configuracionGeneral.diasRecordatorioMantenimiento) || 180;
   document.getElementById('horasAlertaRetraso').value = Number(configuracionGeneral.horasAlertaRetraso) || 24;
+  configuracionGeneral.themePreference = normalizeAppThemePreference(configuracionGeneral.themePreference);
+  document.getElementById('appThemePreference').value = configuracionGeneral.themePreference;
+  applyAppThemePreference(configuracionGeneral.themePreference);
   populatePrintTemplateConfigForm(configuracionGeneral.plantillaImpresion);
   document.getElementById('notasImportantes').value = configuracionGeneral.notasImportantes;
 
@@ -5989,6 +5999,45 @@ function normalizePrintTemplateConfig(config = {}) {
     showKicker: source.showKicker !== false,
     footerText: String(source.footerText || DEFAULT_PRINT_TEMPLATE_CONFIG.footerText).trim() || DEFAULT_PRINT_TEMPLATE_CONFIG.footerText
   };
+}
+
+function normalizeAppThemePreference(value = 'light') {
+  return APP_THEME_OPTIONS.includes(value) ? value : 'light';
+}
+
+function resolveAppTheme(preference = 'light') {
+  const normalizedPreference = normalizeAppThemePreference(preference);
+  if (normalizedPreference === 'system' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return normalizedPreference;
+}
+
+function applyAppThemePreference(preference = configuracionGeneral.themePreference) {
+  const normalizedPreference = normalizeAppThemePreference(preference);
+  const resolvedTheme = resolveAppTheme(normalizedPreference);
+  configuracionGeneral.themePreference = normalizedPreference;
+  document.documentElement.dataset.appThemePreference = normalizedPreference;
+  document.documentElement.dataset.appTheme = resolvedTheme;
+}
+
+function initializeAppThemePreference() {
+  if (!window.matchMedia) {
+    return;
+  }
+
+  appThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handleThemeChange = () => {
+    if (normalizeAppThemePreference(configuracionGeneral.themePreference) === 'system') {
+      applyAppThemePreference('system');
+    }
+  };
+
+  if (typeof appThemeMediaQuery.addEventListener === 'function') {
+    appThemeMediaQuery.addEventListener('change', handleThemeChange);
+  } else if (typeof appThemeMediaQuery.addListener === 'function') {
+    appThemeMediaQuery.addListener(handleThemeChange);
+  }
 }
 
 function populatePrintTemplateConfigForm(config) {
