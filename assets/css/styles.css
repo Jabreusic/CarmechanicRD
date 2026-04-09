@@ -1038,6 +1038,10 @@ button:active {
   font-size: 1.25rem;
 }
 
+.shell-sidebar-overview {
+  display: none;
+}
+
 .shell-sidebar-actions {
   display: grid;
   grid-template-columns: 1fr;
