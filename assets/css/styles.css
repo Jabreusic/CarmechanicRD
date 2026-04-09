@@ -2083,6 +2083,11 @@ button:active {
   }
 
   .app-modal-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .app-modal-header {
     padding-top: 16px;
     padding-bottom: 16px;
   }
@@ -3334,6 +3339,20 @@ button:active {
   background: linear-gradient(135deg, #f8fbff 0%, #eef4fa 100%);
 }
 
+.app-modal-header > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-modal-header h3 {
+  margin: 0;
+  text-align: left;
+}
+
+.app-modal-header .modal-kicker {
+  text-align: left;
+}
+
 .app-modal-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -3365,6 +3384,8 @@ button:active {
 .modal-close-btn {
   width: auto;
   min-width: 44px;
+  flex: 0 0 auto;
+  align-self: center;
   margin-top: 0;
   padding: 10px 12px;
   border-radius: 999px;
