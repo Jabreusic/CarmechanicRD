@@ -2060,13 +2060,12 @@ button:active {
   .app-modal {
     padding: 8px;
     align-items: flex-end;
-  
+  }
+
   .active-workflow-grid,
   .client-vehicle-summary-grid,
   .client-detail-grid {
     grid-template-columns: 1fr;
-  }
-
   }
 
   .app-modal-dialog,
@@ -2091,6 +2090,10 @@ button:active {
   .app-modal-body {
     padding-top: 16px;
     padding-bottom: 18px;
+  }
+
+  .client-workspace-modal-body {
+    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
   }
 
   .app-modal-footer {
@@ -3295,7 +3298,9 @@ button:active {
 .app-modal-dialog {
   width: min(100%, 720px);
   max-height: 90vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 22px;
   background: var(--white);
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
@@ -3319,7 +3324,12 @@ button:active {
 }
 
 .app-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 20px 22px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-modal-footer {
