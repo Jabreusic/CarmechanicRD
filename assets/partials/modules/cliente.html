@@ -1,0 +1,218 @@
+<div class="module-panel client-hub-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Workspace maestro</p>
+      <h2>👥 Clientes y Vehículos</h2>
+      <p class="text-tip">Unifica el catálogo, el historial y el contexto del expediente en una sola vista con acciones laterales y búsqueda persistente.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepCliente">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero client-workspace-hero">
+    <div>
+      <p class="module-kicker">Base de datos viva del taller</p>
+      <h3>Busca, selecciona y expande el expediente desde un solo workspace</h3>
+      <p class="text-tip">El maestro centraliza clientes, vehículos e historial para que el resto del flujo opere sobre contexto consistente.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-warning" data-action-call="abrirNuevoClienteWorkspace">🆕 Nuevo cliente</button>
+      <button type="button" id="restoreWorkflowDraftBtn" class="btn-secondary hidden" data-action-call="loadModuleDraft">↩️ Recuperar borrador</button>
+      <button type="button" class="btn-secondary" data-action-call="liberarContextoOperativo">Liberar contexto</button>
+    </div>
+  </section>
+
+  <section class="module-v2-grid module-v2-grid-sidebar client-hub-workspace">
+    <aside class="client-hub-list-card client-hub-menu-card module-v2-rail">
+      <div class="module-v2-block is-compact">
+        <div class="client-form-card-header">
+          <div>
+            <h3>Control del maestro</h3>
+            <p class="text-tip">Selecciona fecha operativa, filtra cartera y abre el detalle principal.</p>
+          </div>
+        </div>
+
+        <div class="module-v2-inline-grid module-v2-inline-grid-1">
+          <div>
+            <label for="fecha">Fecha de Cotización</label>
+            <input type="date" id="fecha" required />
+            <span class="error-message">Este campo es obligatorio.</span>
+          </div>
+        </div>
+
+        <label for="cargarClienteSelect">Cliente Guardado</label>
+        <select id="cargarClienteSelect" data-change-call="cargarClienteSeleccionado">
+          <option value="">-- Seleccionar o Crear Nuevo Cliente --</option>
+        </select>
+
+        <label for="clienteWorkspaceFilter">Buscar Cliente</label>
+        <input type="text" id="clienteWorkspaceFilter" data-input-call="renderClienteWorkspaceList" placeholder="Nombre, ID interno, cédula, teléfono...">
+      </div>
+
+      <div class="module-v2-block is-compact client-list-block">
+        <div class="client-form-card-header">
+          <div>
+            <h3>Cartera filtrada</h3>
+            <p class="text-tip">Abre el detalle del cliente seleccionado y su historial completo.</p>
+          </div>
+        </div>
+        <div id="clienteWorkspaceList" class="client-workspace-list"></div>
+      </div>
+    </aside>
+
+    <div class="client-hub-detail-card client-hub-main-card module-v2-main">
+      <section class="module-v2-block">
+        <div class="client-hub-main-header">
+          <div>
+            <p class="module-kicker">Detalle activo</p>
+            <h3 id="clienteWorkspaceMainTitle">Detalle del Cliente Seleccionado</h3>
+            <p id="clienteWorkspaceDetailHint" class="text-tip">Selecciona un cliente de la lista para ver sus datos, vehículos, historial, cotizaciones y facturas.</p>
+          </div>
+          <div class="client-detail-toolbar module-v2-action-cluster">
+            <button type="button" id="clienteWorkspaceEditBtn" class="btn-secondary" data-action-call="editarClienteWorkspaceActual">Editar cliente</button>
+            <button type="button" id="clienteWorkspaceNewVehicleBtn" class="btn-secondary" data-action-call="prepararNuevoVehiculoClienteActual">Agregar vehículo</button>
+            <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepOrden"]'>Abrir Entrada</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="module-v2-block module-v2-detail-surface">
+        <div id="clienteWorkspaceDetail" class="client-workspace-detail"></div>
+      </section>
+    </div>
+  </section>
+
+  <div id="clienteFormModal" class="app-modal hidden" data-action-call="handleClientFormModalBackdrop" data-action-include-event="true">
+    <div class="app-modal-dialog app-modal-dialog-lg client-form-modal-dialog">
+      <div class="app-modal-header">
+        <div>
+          <p class="modal-kicker">Clientes</p>
+          <h3 id="clienteFormModalTitle">Nuevo Cliente</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-action-call="cancelarEdicionClienteWorkspace">✕</button>
+      </div>
+
+      <div class="app-modal-body client-workspace-modal-body">
+        <section id="clienteEditorCard" class="client-form-card client-editor-card client-modal-card">
+          <div class="client-form-card-header">
+            <div>
+              <h3 id="clientEditorClienteTitle">Agregar o Editar Cliente</h3>
+              <p class="text-tip">El sistema genera el ID interno del cliente al guardar.</p>
+            </div>
+            <div class="record-id-stack">
+              <span class="record-id-chip">ID Cliente: <strong id="clienteRecordIdDisplay">Se genera al guardar</strong></span>
+            </div>
+          </div>
+
+          <label for="tipoIdentificacion">Tipo de Identificación</label>
+          <select id="tipoIdentificacion" data-change-call="mostrarOcultarCampos">
+            <option value="cedula">Cédula</option>
+            <option value="rnc">RNC</option>
+          </select>
+
+          <label for="identificacion">Cédula/RNC</label>
+          <input type="text" id="identificacion" value="" placeholder="Ej: 000-0000000-0" required />
+          <span class="error-message">Este campo es obligatorio.</span>
+
+          <div id="campoNombreCliente">
+            <label for="nombreCliente">Nombre del Cliente</label>
+            <input type="text" id="nombreCliente" value="" placeholder="Nombre del Cliente" required />
+            <span class="error-message">Este campo es obligatorio.</span>
+          </div>
+
+          <div id="campoNombreEmpresa" class="hidden">
+            <label for="nombreEmpresa">Nombre de la Empresa</label>
+            <input type="text" id="nombreEmpresa" value="" placeholder="Nombre de la Empresa S.A." />
+            <span class="error-message">Este campo es obligatorio para RNC.</span>
+          </div>
+
+          <label for="telefonoCliente">Teléfono</label>
+          <input type="text" id="telefonoCliente" value="" placeholder="Ej: 809-123-4567" />
+
+          <label for="telefonoOficinaCliente">Teléfono oficina</label>
+          <input type="text" id="telefonoOficinaCliente" value="" placeholder="Ej: 809-555-0000" />
+
+          <label for="whatsappCliente">WhatsApp</label>
+          <input type="text" id="whatsappCliente" value="" placeholder="Ej: 809-123-4567 (opcional)" />
+
+          <label for="emailCliente">Email</label>
+          <input type="email" id="emailCliente" value="" placeholder="Ej: cliente@correo.com" />
+        </section>
+      </div>
+
+      <div class="app-modal-footer">
+        <button type="button" class="btn-secondary" data-action-call="cancelarEdicionClienteWorkspace">Cancelar</button>
+        <button type="button" class="btn-success" data-action-call="guardarCliente">💾 Guardar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="vehiculoFormModal" class="app-modal hidden" data-action-call="handleVehiculoFormModalBackdrop" data-action-include-event="true">
+    <div class="app-modal-dialog app-modal-dialog-lg vehicle-form-modal-dialog">
+      <div class="app-modal-header">
+        <div>
+          <p class="modal-kicker">Vehículos</p>
+          <h3 id="vehiculoFormModalTitle">Agregar Vehículo</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-action-call="cancelarEdicionClienteWorkspace">✕</button>
+      </div>
+
+      <div class="app-modal-body client-workspace-modal-body">
+        <p id="vehicleModalClientSummary" class="text-tip client-modal-context"></p>
+
+        <section id="vehiculoEditorCard" class="client-form-card client-editor-card client-modal-card">
+          <div class="client-form-card-header">
+            <div>
+              <h3 id="clientEditorVehiculoTitle">Vehículos del Cliente</h3>
+              <p class="text-tip">Agrega o edita vehículos del cliente seleccionado.</p>
+            </div>
+            <div class="record-id-stack">
+              <span class="record-id-chip">ID Vehículo: <strong id="vehiculoRecordIdDisplay">Se genera al guardar</strong></span>
+            </div>
+          </div>
+
+          <label for="cargarVehiculoClienteSelect">Vehículo Asociado</label>
+          <select id="cargarVehiculoClienteSelect" data-change-call="cargarVehiculoSeleccionadoCliente">
+            <option value="">-- Seleccionar o Crear Nuevo Vehículo --</option>
+          </select>
+
+          <label for="vehiculoMarca">Marca</label>
+          <input type="text" id="vehiculoMarca" value="" placeholder="Ej: Toyota" />
+
+          <label for="vehiculoModelo">Modelo</label>
+          <input type="text" id="vehiculoModelo" value="" placeholder="Ej: Corolla" required />
+          <span class="error-message">Este campo es obligatorio.</span>
+
+          <label for="vehiculoAnio">Año</label>
+          <input type="number" id="vehiculoAnio" value="" min="1900" max="2099" placeholder="Ej: 2018" required />
+          <span class="error-message">Este campo es obligatorio y debe ser un año válido.</span>
+
+          <label for="vehiculoCombustible">Combustible</label>
+          <select id="vehiculoCombustible" required>
+            <option value="Gasolina">Gasolina</option>
+            <option value="Diésel">Diésel</option>
+            <option value="Eléctrico">Eléctrico</option>
+            <option value="Híbrido">Híbrido</option>
+          </select>
+          <span class="error-message">Este campo es obligatorio.</span>
+
+          <label for="vehiculoChasis">Chasis</label>
+          <input type="text" id="vehiculoChasis" value="" placeholder="Ej: XXXXXXXXXXXXXXXXX" required />
+          <span class="error-message">Este campo es obligatorio.</span>
+
+          <label for="vehiculoPlaca">Placa</label>
+          <input type="text" id="vehiculoPlaca" value="" placeholder="Ej: A000000" required />
+          <span class="error-message">Este campo es obligatorio.</span>
+
+          <label for="vehiculoColor">Color</label>
+          <input type="text" id="vehiculoColor" value="" placeholder="Ej: Blanco" />
+        </section>
+      </div>
+
+      <div class="app-modal-footer">
+        <button type="button" class="btn-secondary" data-action-call="cancelarEdicionClienteWorkspace">Cancelar</button>
+        <button type="button" class="btn-success" data-action-call="guardarVehiculoClienteActual">🚘 Guardar Vehículo</button>
+        <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepOrden"]'>Abrir módulo Entrada</button>
+      </div>
+    </div>
+  </div>
+</div>

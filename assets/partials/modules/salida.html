@@ -1,0 +1,157 @@
+<div class="module-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>🚗 Orden de Salida</h2>
+      <p class="text-tip">Formaliza la entrega del vehículo con checklist, observaciones finales, responsables y firma del cliente.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepSalida">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero">
+    <div>
+      <p class="module-kicker">Cierre del expediente</p>
+      <h3>Formaliza la entrega con checklist compacto, observaciones y resguardo legal</h3>
+      <p class="text-tip">Salida concentra confirmación documental, conformidad del cliente y evidencia final antes de cerrar la visita.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepSeguimiento"]'>Volver a Seguimiento</button>
+      <button type="button" class="btn-primary" data-action-call="imprimirOrdenSalida">🖨️ Imprimir salida</button>
+    </div>
+  </section>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Carga la visita correspondiente para cerrar la entrega sobre el expediente correcto.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label>Buscar Visita</label>
+        <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label>Expediente / OT</label>
+        <select data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="diagnostic-context-panel">
+    <div class="diagnostic-context-grid">
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Cliente / Vehículo</p>
+        <h3 id="salidaContextTitle">Sin expediente activo</h3>
+        <p id="salidaContextMeta" class="text-tip">La orden de salida se emite sobre el cliente y vehículo seleccionados.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Seguimiento</p>
+        <h3 id="salidaSeguimientoTitle">Seguimiento pendiente</h3>
+        <p id="salidaSeguimientoMeta" class="text-tip">Completa el seguimiento para registrar trabajo realizado y fecha de entrega.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Entrega</p>
+        <h3 id="salidaEstadoTitle">Preparando cierre</h3>
+        <p id="salidaEstadoMeta" class="text-tip">Checklist, notas finales y firma del cliente para cerrar el expediente.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="module-v2-grid module-v2-grid-sidebar">
+    <div class="module-v2-stack">
+      <section class="entry-form-card module-v2-block">
+      <div class="client-form-card-header">
+        <div>
+          <h3>Resumen de Entrega</h3>
+          <p class="text-tip">Documenta la salida del vehículo y cualquier observación legal o comercial relevante.</p>
+        </div>
+      </div>
+
+      <label for="fechaSalida">Fecha de Entrega</label>
+      <input type="date" id="fechaSalida">
+
+      <label for="entregadoPorTaller">Entregado por</label>
+      <input type="text" id="entregadoPorTaller" placeholder="Nombre del asesor o responsable de entrega">
+
+      <label for="recibidoPorCliente">Recibido por</label>
+      <input type="text" id="recibidoPorCliente" placeholder="Nombre de la persona que recibe el vehículo">
+
+      <label for="estadoSalidaVehiculo">Resultado de entrega</label>
+      <select id="estadoSalidaVehiculo">
+        <option value="listo_entregado">✅ Entregado conforme</option>
+        <option value="entregado_observaciones">⚠️ Entregado con observaciones</option>
+        <option value="pendiente_entrega">⏳ Pendiente de entrega</option>
+      </select>
+
+      <label for="observacionesSalida">Observaciones finales</label>
+      <textarea id="observacionesSalida" rows="4" placeholder="Explica qué se entregó, recomendaciones, advertencias o condiciones especiales."></textarea>
+
+      <label for="pendientesNoAutorizados">Trabajos pendientes o no autorizados</label>
+      <textarea id="pendientesNoAutorizados" rows="4" placeholder="Ej: cliente no autorizó cambio de aceite, pendiente cambio de soportes, revisar fuga menor, etc."></textarea>
+      </section>
+
+      <section class="entry-form-card module-v2-block">
+      <div class="client-form-card-header">
+        <div>
+          <h3>Checklist de Salida</h3>
+          <p class="text-tip">Marca los puntos confirmados al momento de la entrega.</p>
+        </div>
+      </div>
+
+      <div class="salida-checklist-grid">
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="documentos_entregados"> Documentos entregados</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="llaves_entregadas"> Llaves entregadas</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="explicacion_trabajo"> Trabajo explicado al cliente</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="piezas_mostradas"> Piezas reemplazadas mostradas/entregadas</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="pago_confirmado"> Pago confirmado</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="prueba_final"> Prueba final validada</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="sin_testigos"> Sale sin testigos críticos</label>
+        <label class="salida-check-item"><input type="checkbox" class="salidaChecklistItem" value="cliente_conforme"> Cliente conforme al recibir</label>
+      </div>
+
+      <div class="salida-legal-note">
+        <strong>Nota legal:</strong> este documento debe dejar evidencia de trabajos realizados, pendientes no autorizados y conformidad del cliente al retirar el vehículo.
+      </div>
+      </section>
+    </div>
+
+    <aside class="module-v2-rail module-v2-stack">
+      <section class="module-v2-block is-accent">
+        <p class="module-kicker">Validaciones previas</p>
+        <h4>Antes de cerrar, confirma pago, checklist y firma</h4>
+        <p class="text-tip">Salida debe operar como último candado del expediente y no solo como una impresión final.</p>
+      </section>
+    </aside>
+  </section>
+
+  <section class="diagnostic-signature-panel entry-signature-panel module-v2-block">
+    <div class="diagnostic-signature-header">
+      <div>
+        <h4>Firma del Cliente</h4>
+        <p class="text-tip">Firma de conformidad al momento de la entrega.</p>
+      </div>
+      <span id="salidaSignatureStatus" class="diagnostic-signature-status">Sin firma guardada</span>
+    </div>
+
+    <canvas id="salidaSignatureCanvas" class="diagnostic-signature-canvas" width="760" height="220"></canvas>
+    <div class="diagnostic-signature-actions">
+      <button type="button" class="btn-secondary" data-action-call="clearSalidaSignature">Limpiar Firma</button>
+      <button type="button" class="btn-primary" data-action-call="saveSalidaSignature">Guardar Firma</button>
+    </div>
+  </section>
+
+  <div class="button-group module-v2-actionbar">
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepSeguimiento"]'>Abrir módulo Seguimiento</button>
+    <button type="button" class="btn-success" data-action-call="guardarCotizacion">💾 Guardar Todo</button>
+    <button type="button" data-action-call="imprimirOrdenSalida">🖨️ Imprimir Orden de Salida</button>
+  </div>
+</div>

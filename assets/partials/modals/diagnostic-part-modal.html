@@ -1,0 +1,52 @@
+<div id="diagnosticPartModal" class="app-modal hidden" data-action-call="handleDiagnosticModalBackdrop" data-action-include-event="true" data-action-args='["diagnosticPartModal"]'>
+  <div class="app-modal-dialog app-modal-dialog-lg">
+    <div class="app-modal-header">
+      <div>
+        <p class="modal-kicker">Diagnóstico interactivo</p>
+        <h3 id="diagnosticModalTitle">Sistema</h3>
+      </div>
+      <button type="button" class="modal-close-btn" data-action-call="closeDiagnosticPartModal">✕</button>
+    </div>
+
+    <div class="app-modal-body">
+      <p id="diagnosticLockNotice" class="diagnostic-lock-notice hidden">Los hallazgos estan bloqueados porque el cliente ya firmo esta revision.</p>
+      <label for="diagnosticModalEstado">Estado del componente</label>
+      <select id="diagnosticModalEstado">
+        <option value="pendiente">Pendiente de revisión</option>
+        <option value="ok">Sin novedad</option>
+        <option value="atencion">Requiere atención</option>
+        <option value="critico">Crítico</option>
+      </select>
+
+      <label for="diagnosticModalHallazgo">Hallazgo encontrado</label>
+      <textarea id="diagnosticModalHallazgo" rows="4" placeholder="Describe el hallazgo de forma clara para taller y cliente."></textarea>
+
+      <label for="diagnosticModalRecomendacion">Recomendación</label>
+      <textarea id="diagnosticModalRecomendacion" rows="4" placeholder="Indica la acción sugerida, pieza o servicio recomendado."></textarea>
+
+      <label for="diagnosticModalPhotos">Fotos del hallazgo</label>
+      <div class="diagnostic-photo-actions">
+        <div class="diagnostic-photo-input-group">
+          <span class="diagnostic-photo-label">Galería</span>
+          <input type="file" id="diagnosticModalPhotos" accept="image/*" multiple data-change-call="handleDiagnosticPhotoUpload" data-change-include-event="true">
+        </div>
+        <div class="diagnostic-photo-input-group">
+          <span class="diagnostic-photo-label">Cámara</span>
+          <input type="file" id="diagnosticCameraPhoto" accept="image/*" capture="environment" data-change-call="handleDiagnosticPhotoUpload" data-change-include-event="true">
+        </div>
+      </div>
+      <p class="text-tip">En móvil puedes abrir la cámara directamente para tomar la foto del hallazgo.</p>
+      <div id="diagnosticModalPhotosPreview" class="diagnostic-photo-grid"></div>
+
+      <label class="diagnostic-visibility-toggle" for="diagnosticModalVisibleCliente">
+        <input type="checkbox" id="diagnosticModalVisibleCliente" checked>
+        Mostrar este hallazgo en la vista del cliente e impresión
+      </label>
+    </div>
+
+    <div class="app-modal-footer">
+      <button type="button" class="btn-secondary" data-action-call="closeDiagnosticPartModal">Cancelar</button>
+      <button type="button" class="btn-primary" data-action-call="saveDiagnosticPart">Guardar Hallazgo</button>
+    </div>
+  </div>
+</div>

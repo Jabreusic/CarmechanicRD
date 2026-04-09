@@ -1,0 +1,197 @@
+<div class="module-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>🧪 Diagnóstico</h2>
+      <p class="text-tip">Gestiona hallazgos por sistema, fotos, vista cliente y orden de trabajo recomendada.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepDiagnostico">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero">
+    <div>
+      <p class="module-kicker">Mapa técnico</p>
+      <h3>Diagnóstico orientado a sistemas, evidencias y lectura cliente/técnico</h3>
+      <p class="text-tip">Separa el contexto del expediente, el semáforo operativo y las tarjetas por sistema para acelerar la revisión.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-secondary" data-action-call="openDiagnosticSummaryModal">👁️ Vista Cliente</button>
+      <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepServicio"]'>Ir a Cotización</button>
+    </div>
+  </section>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Carga una visita existente para diagnosticar sin depender del cliente activo en pantalla.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label>Buscar Visita</label>
+        <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label>Expediente / OT</label>
+        <select data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="diagnostic-context-panel">
+    <div class="diagnostic-context-grid">
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Cliente y Vehículo</p>
+        <h3 id="diagnosticContextTitle">Sin cliente seleccionado</h3>
+        <p id="diagnosticContextMeta" class="text-tip">La revisión técnica se alimenta del cliente y vehículo seleccionados.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Orden de Entrada</p>
+        <h3 id="diagnosticEntryTitle">Entrada pendiente</h3>
+        <p id="diagnosticEntryMeta" class="text-tip">Completa la orden de entrada para traer motivo, millaje, testigos y observaciones.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Estado del Flujo</p>
+        <h3 id="diagnosticFlowTitle">Esperando recepción</h3>
+        <p id="diagnosticFlowMeta" class="text-tip">Cliente/Vehículo → Entrada → Diagnóstico → Cotización → Facturación</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="diagnosticOverviewPanel" class="diagnostic-overview-panel status-pendiente">
+    <div class="diagnostic-overview-header">
+      <div>
+        <p class="module-kicker">Recepción rápida</p>
+        <h3>Semáforo operativo del diagnóstico</h3>
+        <p class="text-tip">Lectura compacta para detectar si el vehículo está crítico, en atención o listo para cotizar.</p>
+      </div>
+      <div id="diagnosticOverviewCompletion" class="diagnostic-overview-progress">0% completo</div>
+    </div>
+
+    <div class="diagnostic-overview-grid diagnostic-overview-grid-compact">
+      <article id="diagnosticOverviewHero" class="diagnostic-overview-card diagnostic-overview-card-hero status-pendiente">
+        <div class="diagnostic-overview-hero-main">
+          <div class="diagnostic-overview-signal" aria-hidden="true">
+            <span class="diagnostic-overview-signal-glow"></span>
+            <span class="diagnostic-overview-signal-core"></span>
+          </div>
+          <div class="diagnostic-overview-hero-copy">
+            <p class="entry-summary-kicker">Estado general</p>
+            <h3 id="diagnosticOverviewStateTitle">Inspección pendiente</h3>
+            <p id="diagnosticOverviewStateMeta" class="text-tip">Aún no se han registrado hallazgos ni prioridad.</p>
+          </div>
+        </div>
+        <div id="diagnosticOverviewCounters" class="diagnostic-overview-counters"></div>
+      </article>
+
+      <div class="diagnostic-overview-quickstack">
+        <article class="diagnostic-overview-card diagnostic-overview-card-compact">
+          <p class="entry-summary-kicker">Visible al cliente</p>
+          <h3 id="diagnosticOverviewClientTitle">0 hallazgos</h3>
+          <p id="diagnosticOverviewClientMeta" class="text-tip">Los hallazgos visibles alimentan la vista cliente y la impresión.</p>
+        </article>
+
+        <article class="diagnostic-overview-card diagnostic-overview-card-compact">
+          <p class="entry-summary-kicker">Orden recomendada</p>
+          <h3 id="diagnosticOverviewWorkTitle">Pendiente</h3>
+          <p id="diagnosticOverviewWorkMeta" class="text-tip">Aún no se ha definido un trabajo recomendado.</p>
+        </article>
+
+        <article class="diagnostic-overview-card diagnostic-overview-card-compact">
+          <p class="entry-summary-kicker">Evidencia y revisión</p>
+          <h3 id="diagnosticOverviewEvidenceTitle">0 sistemas revisados</h3>
+          <p id="diagnosticOverviewEvidenceMeta" class="text-tip">Sin fotos ni sistemas evaluados todavía.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="module-v2-grid module-v2-grid-sidebar-diagnostic">
+    <div class="module-v2-stack">
+      <section class="module-v2-block">
+        <label for="sintomasReportados">Síntomas Reportados / Motivo Recibido</label>
+        <textarea id="sintomasReportados" rows="3" placeholder="Este campo puede tomar como base el motivo de entrada registrado en recepción."></textarea>
+
+        <div class="diagnostic-general-grid">
+          <div>
+            <label for="pruebasRealizadas">Pruebas realizadas</label>
+            <textarea id="pruebasRealizadas" rows="3" placeholder="Ej: escaneo, prueba en carretera, inspección visual, mediciones, etc."></textarea>
+          </div>
+          <div>
+            <label for="causaProbable">Causa probable</label>
+            <textarea id="causaProbable" rows="3" placeholder="Describe la causa probable detectada luego de la revisión."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <div class="diagnostic-panel module-v2-block">
+        <div class="diagnostic-panel-header">
+          <div>
+            <h4>Diagnóstico por Sistemas</h4>
+            <p class="text-tip">Registra hallazgos por componente para mostrarle al cliente un resumen claro y profesional.</p>
+          </div>
+          <button type="button" class="btn-secondary" data-action-call="openDiagnosticSummaryModal">👁️ Vista Cliente</button>
+        </div>
+
+        <div class="diagnostic-toolbar">
+          <div class="diagnostic-filter-group" role="group" aria-label="Filtrar diagnóstico por severidad">
+            <button type="button" class="diagnostic-filter-chip is-active" data-diagnostic-filter="all">Todos</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="critico">Críticos</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="atencion">Atención</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="ok">Sin novedad</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="pendiente">Pendientes</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="visible">Cliente</button>
+            <button type="button" class="diagnostic-filter-chip" data-diagnostic-filter="photos">Con fotos</button>
+          </div>
+
+          <div class="diagnostic-toolbar-search">
+            <label for="diagnosticSearchInput">Buscar sistema o hallazgo</label>
+            <input type="text" id="diagnosticSearchInput" placeholder="Motor, frenos, fuga, ruido, batería...">
+          </div>
+        </div>
+
+        <p id="diagnosticToolbarMeta" class="diagnostic-toolbar-meta">Mostrando 0 de 0 sistemas.</p>
+        <div id="diagnosticPartsGrid" class="diagnostic-grid"></div>
+      </div>
+    </div>
+
+    <aside class="module-v2-rail module-v2-stack">
+      <section class="module-v2-block is-compact">
+        <label for="prioridadDiagnostico">Prioridad de reparación</label>
+        <select id="prioridadDiagnostico">
+          <option value="media" selected>Media</option>
+          <option value="baja">Baja</option>
+          <option value="alta">Alta</option>
+          <option value="critica">Crítica</option>
+        </select>
+
+        <label for="diagnosticoInicial">Diagnóstico Inicial</label>
+        <textarea id="diagnosticoInicial" placeholder="Describe hallazgos, síntomas reportados y resultado del diagnóstico preliminar..."></textarea>
+
+        <label for="trabajo">Servicio / orden de trabajo recomendada</label>
+        <input type="text" id="trabajo" value="" placeholder="Ej: Cambio de bomba de agua y revisión del sistema de enfriamiento" required />
+        <span class="error-message">Este campo es obligatorio.</span>
+      </section>
+
+      <section class="module-v2-block is-accent">
+        <p class="module-kicker">Entrega al cliente</p>
+        <h4>Resumen técnico listo para cotizar</h4>
+        <p class="text-tip">Conserva aquí la prioridad, el diagnóstico inicial y la orden recomendada para enlazar rápido hacia Cotización.</p>
+      </section>
+    </aside>
+  </section>
+  <div class="button-group module-v2-actionbar">
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepOrden"]'>Abrir módulo Entrada</button>
+    <button type="button" class="btn-success" data-action-call="guardarDiagnostico">💾 Guardar Diagnóstico</button>
+    <button type="button" class="btn-primary" data-action-call="concluirDiagnostico">✅ Concluir Diagnóstico</button>
+    <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepServicio"]'>Abrir módulo Cotización</button>
+  </div>
+</div>

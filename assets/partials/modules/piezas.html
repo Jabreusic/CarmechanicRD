@@ -1,0 +1,47 @@
+<div class="module-panel">
+  <div class="module-panel-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>🧩 Piezas</h2>
+      <p class="text-tip">Agrega repuestos, calcula total final y define el estado comercial de la cotización.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepPiezas">Pendiente</span>
+  </div>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Carga una visita existente para trabajar piezas dentro del expediente correcto.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label>Buscar Visita</label>
+        <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label>Expediente / OT</label>
+        <select data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      </div>
+    </div>
+  </section>
+
+  <label for="selectPiezaCatalogoNuevaCotizacion">Cargar Pieza del Catálogo:</label>
+  <select id="selectPiezaCatalogoNuevaCotizacion" data-change-call="cargarPiezaCatalogoNuevaCotizacion">
+    <option value="">-- Seleccionar una pieza --</option>
+  </select>
+  <div id="piezasContainer" class="item-container"></div>
+  <button type="button" id="agregarPiezaBtn" data-action-call="agregarPieza">➕ Añadir Pieza</button>
+  <div class="button-group">
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepServicio"]'>Abrir módulo Cotización</button>
+    <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepSeguimiento"]'>Abrir módulo Seguimiento</button>
+  </div>
+</div>

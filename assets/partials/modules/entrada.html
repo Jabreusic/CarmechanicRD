@@ -1,0 +1,256 @@
+<div class="module-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>📋 Entrada</h2>
+      <p class="text-tip">Documenta el estado de recepción del vehículo con testigos, daños visibles, combustible y firma del cliente.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepOrden">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero">
+    <div>
+      <p class="module-kicker">Recepción del expediente</p>
+      <h3>Captura la llegada del vehículo por bloques claros y con lectura rápida</h3>
+      <p class="text-tip">La entrada ahora se organiza como un checklist operativo: contexto, recepción, testigos, inspección visual y firma.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Abrir Clientes</button>
+      <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Ir a Diagnóstico</button>
+    </div>
+  </section>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Busca una visita guardada para continuarla. Los clientes y vehículos se gestionan desde el catálogo maestro.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label for="entryVisitSearch">Buscar Visita</label>
+        <input type="text" id="entryVisitSearch" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label for="entryVisitSelect">Expediente / OT</label>
+        <select id="entryVisitSelect" data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Ir a Clientes y Vehículos</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="entry-summary-grid">
+    <article class="entry-summary-card">
+      <p class="entry-summary-kicker">Cliente</p>
+      <h3 id="ordenEntradaClienteNombre">Cliente no seleccionado</h3>
+      <p id="ordenEntradaClienteMeta" class="text-tip">Selecciona un cliente guardado para cargar su información.</p>
+    </article>
+    <article class="entry-summary-card">
+      <p class="entry-summary-kicker">Vehículo</p>
+      <h3 id="ordenEntradaVehiculoNombre">Vehículo no seleccionado</h3>
+      <p id="ordenEntradaVehiculoMeta" class="text-tip">Selecciona un vehículo guardado para preparar la orden de entrada.</p>
+    </article>
+  </section>
+
+  <div class="module-v2-stack">
+    <details class="module-v2-collapsible" open>
+      <summary>
+        <span>Recepción inicial</span>
+        <small>Motivo, millaje, modo de llegada y combustible</small>
+      </summary>
+      <div class="entry-form-grid module-v2-collapsible-body">
+        <section class="entry-form-card">
+      <div class="client-form-card-header">
+        <div>
+          <h3>Recepción del Vehículo</h3>
+          <p class="text-tip">Completa los datos básicos con los que llegó el vehículo al taller.</p>
+        </div>
+      </div>
+
+      <label for="motivoEntrada">Motivo de Entrada / Servicio Solicitado</label>
+      <textarea id="motivoEntrada" rows="4" placeholder="Describe el motivo de entrada o el servicio solicitado por el cliente."></textarea>
+
+      <label for="millajeEntrada">Millaje Actual</label>
+      <input type="number" id="millajeEntrada" placeholder="Ej: 120000" />
+
+      <label>¿Enciende?</label>
+      <div class="radio-group entry-radio-group">
+        <label><input type="radio" name="enciende" value="Sí" checked /> Sí</label>
+        <label><input type="radio" name="enciende" value="No" /> No</label>
+      </div>
+
+      <label>Forma de llegada</label>
+      <div class="radio-group entry-radio-group">
+        <label><input type="radio" name="modoLlegada" value="Conduciendo" checked /> Conduciendo</label>
+        <label><input type="radio" name="modoLlegada" value="Grúa" /> Grúa</label>
+        <label><input type="radio" name="modoLlegada" value="Empujado" /> Empujado</label>
+      </div>
+      <label for="observacionesEntrada">Observaciones de Recepción</label>
+      <textarea id="observacionesEntrada" rows="4" placeholder="Notas visibles al momento de la recepción, condiciones generales, golpes, faltantes, etc."></textarea>
+
+      <div class="entry-fuel-panel">
+        <div class="entry-fuel-header">
+          <label for="combustibleActual">Nivel de Combustible</label>
+          <span id="combustibleActualLabel" class="entry-fuel-label">50%</span>
+        </div>
+        <input type="range" id="combustibleActual" min="0" max="100" step="5" value="50" data-input-call="updateCombustibleVisual" />
+        <div class="entry-fuel-scale">
+          <span>Vacío</span>
+          <span>1/4</span>
+          <span>1/2</span>
+          <span>3/4</span>
+          <span>Lleno</span>
+        </div>
+        <div class="entry-fuel-meter">
+          <div id="combustibleActualBar" class="entry-fuel-fill" style="width: 50%;"></div>
+        </div>
+      </div>
+        </section>
+
+        <section class="entry-form-card">
+      <div class="client-form-card-header">
+        <div>
+          <h3>Checklist de Luces / Testigos</h3>
+          <p class="text-tip">Haz clic sobre cada testigo para encenderlo o apagarlo según el estado del tablero.</p>
+        </div>
+      </div>
+
+      <div id="entryWarningLightsGrid" class="entry-warning-grid">
+        <button type="button" class="entry-warning-card" data-warning-light="Check Engine" data-action-call="toggleWarningLight" data-action-args='["Check Engine"]'>
+          <img src="img/testigos/check-engine.png" alt="Check Engine">
+          <span>Check Engine</span>
+          <input type="checkbox" class="luzTablero hidden" value="Check Engine" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="ABS" data-action-call="toggleWarningLight" data-action-args='["ABS"]'>
+          <img src="img/testigos/abs.png" alt="ABS">
+          <span>ABS</span>
+          <input type="checkbox" class="luzTablero hidden" value="ABS" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="Aceite" data-action-call="toggleWarningLight" data-action-args='["Aceite"]'>
+          <img src="img/testigos/aceite.png" alt="Aceite">
+          <span>Aceite</span>
+          <input type="checkbox" class="luzTablero hidden" value="Aceite" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="Batería" data-action-call="toggleWarningLight" data-action-args='["Batería"]'>
+          <img src="img/testigos/bateria.png" alt="Batería">
+          <span>Batería</span>
+          <input type="checkbox" class="luzTablero hidden" value="Batería" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="Airbag" data-action-call="toggleWarningLight" data-action-args='["Airbag"]'>
+          <img src="img/testigos/airbag.png" alt="Airbag">
+          <span>Airbag</span>
+          <input type="checkbox" class="luzTablero hidden" value="Airbag" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="Freno" data-action-call="toggleWarningLight" data-action-args='["Freno"]'>
+          <img src="img/testigos/freno.png" alt="Freno">
+          <span>Freno</span>
+          <input type="checkbox" class="luzTablero hidden" value="Freno" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="Temperatura" data-action-call="toggleWarningLight" data-action-args='["Temperatura"]'>
+          <img src="img/testigos/temperatura.png" alt="Temperatura">
+          <span>Temperatura</span>
+          <input type="checkbox" class="luzTablero hidden" value="Temperatura" tabindex="-1" aria-hidden="true">
+        </button>
+        <button type="button" class="entry-warning-card" data-warning-light="TPMS" data-action-call="toggleWarningLight" data-action-args='["TPMS"]'>
+          <img src="img/testigos/tpms.png" alt="TPMS">
+          <span>TPMS</span>
+          <input type="checkbox" class="luzTablero hidden" value="TPMS" tabindex="-1" aria-hidden="true">
+        </button>
+      </div>
+
+      <div class="entry-checklist-section">
+        <div class="client-form-card-header">
+          <div>
+            <h3>Checklist de Condiciones del Vehículo</h3>
+            <p class="text-tip">Un clic marca Sí, dos clics marcan No y tres clics regresan el campo a blanco para ahorrar espacio vertical.</p>
+          </div>
+        </div>
+
+        <div class="entry-checklist-grid" role="list">
+          <article class="entry-checklist-item" role="listitem"><span>Placa</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="placa" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["placa"]' aria-label="Placa en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Micas</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="micas" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["micas"]' aria-label="Micas en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Encendedor</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="encendedor" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["encendedor"]' aria-label="Encendedor en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Vidrios</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="vidrios" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["vidrios"]' aria-label="Vidrios en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Porta vasos</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="portaVasos" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["portaVasos"]' aria-label="Porta vasos en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Llaves de ruedas</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="llavesDeRuedas" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["llavesDeRuedas"]' aria-label="Llaves de ruedas en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Sunroof</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="sunroof" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["sunroof"]' aria-label="Sunroof en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Cinturones</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="cinturones" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["cinturones"]' aria-label="Cinturones en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Centro de aros</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="centroDeAros" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["centroDeAros"]' aria-label="Centro de aros en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Llaveros</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="llaveros" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["llaveros"]' aria-label="Llaveros en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Documentos</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="documentos" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["documentos"]' aria-label="Documentos en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Bocinas</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="bocinas" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["bocinas"]' aria-label="Bocinas en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Tapa de motor</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="tapaDeMotor" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["tapaDeMotor"]' aria-label="Tapa de motor en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Logos</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="logos" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["logos"]' aria-label="Logos en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Retrovisor derecho</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="retrovisorDerecho" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["retrovisorDerecho"]' aria-label="Retrovisor derecho en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Retrovisor izquierdo</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="retrovisorIzquierdo" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["retrovisorIzquierdo"]' aria-label="Retrovisor izquierdo en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Antena</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="antena" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["antena"]' aria-label="Antena en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Tuercas de aro</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="tuercasDeAro" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["tuercasDeAro"]' aria-label="Tuercas de aro en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Limpiabrisas</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="limpiabrisas" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["limpiabrisas"]' aria-label="Limpiabrisas en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Alfombras</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="alfombras" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["alfombras"]' aria-label="Alfombras en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Tapón de gasolina</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="taponDeGasolina" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["taponDeGasolina"]' aria-label="Tapón de gasolina en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Gomas</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="gomas" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["gomas"]' aria-label="Gomas en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Revista/manual</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="revistaManual" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["revistaManual"]' aria-label="Revista manual en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Asientos</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="asientos" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["asientos"]' aria-label="Asientos en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Radio</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="radio" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["radio"]' aria-label="Radio en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Aire acondicionado</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="aireAcondicionado" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["aireAcondicionado"]' aria-label="Aire acondicionado en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+          <article class="entry-checklist-item" role="listitem"><span>Gato</span><button type="button" class="entry-checklist-toggle is-empty" data-entry-check-item="gato" data-checklist-state="" data-action-call="cycleEntryChecklistState" data-action-args='["gato"]' aria-label="Gato en blanco">—</button><small class="entry-checklist-legend">1 Sí / 2 No / 3 —</small></article>
+        </div>
+      </div>
+        </section>
+      </div>
+    </details>
+
+    <details class="module-v2-collapsible" open>
+      <summary>
+        <span>Inspección física</span>
+        <small>Checklist visible, diagrama de daños y conformidad del cliente</small>
+      </summary>
+      <div class="module-v2-collapsible-body module-v2-stack">
+        <section class="entry-form-card entry-diagram-card">
+          <div class="client-form-card-header">
+            <div>
+              <h3>Diagrama de Pintura / Daños Visibles</h3>
+              <p class="text-tip">Haz clic sobre la imagen para marcar puntos visibles con los que llegó el vehículo. Cada punto se guarda por coordenadas.</p>
+            </div>
+            <button type="button" class="btn-secondary" data-action-call="clearEntryDamageMarks">Limpiar marcas</button>
+          </div>
+
+          <div id="entryDamageDiagram" class="entry-diagram-stage" data-action-call="handleEntryDiagramClick" data-action-include-event="true">
+            <img src="img/diagramas/car.jpg" alt="Diagrama del vehículo para marcar daños visibles">
+            <div id="entryDamageMarkers" class="entry-diagram-markers"></div>
+          </div>
+          <p id="entryDamageSummary" class="text-tip">No hay marcas registradas.</p>
+        </section>
+
+        <section class="diagnostic-signature-panel entry-signature-panel">
+          <div class="diagnostic-signature-header">
+            <div>
+              <h4>Firma del Cliente</h4>
+              <p class="text-tip">Firma de conformidad aceptando el estado de entrada del vehículo.</p>
+            </div>
+            <span id="entrySignatureStatus" class="diagnostic-signature-status">Sin firma guardada</span>
+          </div>
+
+          <canvas id="entrySignatureCanvas" class="diagnostic-signature-canvas" width="760" height="220"></canvas>
+          <div class="diagnostic-signature-actions">
+            <button type="button" class="btn-secondary" data-action-call="clearEntrySignature">Limpiar Firma</button>
+            <button type="button" class="btn-primary" data-action-call="saveEntrySignature">Guardar Firma</button>
+          </div>
+        </section>
+      </div>
+    </details>
+  </div>
+
+  <div class="button-group module-v2-actionbar">
+    <button type="button" class="btn-success" data-action-call="guardarOrdenEntrada">💾 Guardar Entrada</button>
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Abrir Clientes y Vehículos</button>
+    <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Abrir módulo Diagnóstico</button>
+  </div>
+</div>

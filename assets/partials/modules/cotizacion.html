@@ -1,0 +1,152 @@
+<div class="module-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>💰 Cotización</h2>
+      <p class="text-tip">Calcula mano de obra, agrega repuestos y define el estado comercial de la cotización en un solo paso.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepServicio">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero">
+    <div>
+      <p class="module-kicker">Decisión comercial</p>
+      <h3>Cotización con lectura lateral de contexto, piezas y aprobación</h3>
+      <p class="text-tip">Calcula mano de obra y repuestos mientras mantienes visible el estado comercial de la visita.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-secondary" data-action-call="openQuoteApprovalModal">🗂️ Configurar aprobación</button>
+      <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepSeguimiento"]'>Ir a Seguimiento</button>
+    </div>
+  </section>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Carga la visita correspondiente y cotiza sobre ese expediente, no sobre un cliente activo único.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label>Buscar Visita</label>
+        <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label>Expediente / OT</label>
+        <select data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote-context-panel">
+    <div class="diagnostic-context-grid">
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Cliente / Vehículo</p>
+        <h3 id="servicioContextTitle">Sin cliente cargado</h3>
+        <p id="servicioContextMeta" class="text-tip">La cotización se construye sobre el cliente y vehículo activos.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Entrada</p>
+        <h3 id="servicioOrdenTitle">Entrada pendiente</h3>
+        <p id="servicioOrdenMeta" class="text-tip">Aquí se mostrará el motivo de entrada y datos clave de recepción.</p>
+      </article>
+      <article class="diagnostic-context-card">
+        <p class="entry-summary-kicker">Diagnóstico</p>
+        <h3 id="servicioDiagnosticoTitle">Diagnóstico pendiente</h3>
+        <p id="servicioDiagnosticoMeta" class="text-tip">La cotización hereda hallazgos, prioridad y trabajo recomendado del diagnóstico.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="module-v2-grid module-v2-grid-sidebar-quote">
+    <div class="module-v2-stack">
+      <section class="module-v2-block">
+        <div class="module-v2-inline-grid module-v2-inline-grid-2">
+          <div>
+            <label for="selectServicioCatalogoNuevaCotizacion">Cargar Servicio del Catálogo:</label>
+            <select id="selectServicioCatalogoNuevaCotizacion" data-change-call="cargarServicioCatalogoNuevaCotizacion">
+              <option value="">-- Seleccionar un servicio --</option>
+            </select>
+          </div>
+          <div></div>
+          <div>
+            <label for="horas">Horas estimadas</label>
+            <input type="number" id="horas" value="2" min="0.5" step="0.5" required />
+            <span class="error-message">Ingrese un número positivo.</span>
+          </div>
+          <div>
+            <label for="dificultad">Nivel de dificultad</label>
+            <select id="dificultad" required>
+              <option value="1.0">Fácil</option>
+              <option value="1.2" selected>Medio</option>
+              <option value="1.5">Difícil</option>
+              <option value="2.0">Muy difícil</option>
+            </select>
+            <span class="error-message">Este campo es obligatorio.</span>
+          </div>
+          <div>
+            <label for="experiencia">Experiencia del técnico</label>
+            <select id="experiencia" required>
+              <option value="0.8">Aprendiz</option>
+              <option value="1.0" selected>Intermedio</option>
+              <option value="1.3">Muy experto</option>
+            </select>
+            <span class="error-message">Este campo es obligatorio.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="module-v2-block">
+        <div class="client-form-card-header label-mt">
+          <div>
+            <h3>Artículos / Piezas de la Cotización</h3>
+            <p class="text-tip">Los repuestos forman parte directa de la cotización y se calculan junto a la mano de obra.</p>
+          </div>
+        </div>
+
+        <label for="selectPiezaCatalogoNuevaCotizacion">Cargar Pieza del Catálogo:</label>
+        <select id="selectPiezaCatalogoNuevaCotizacion" data-change-call="cargarPiezaCatalogoNuevaCotizacion">
+          <option value="">-- Seleccionar una pieza --</option>
+        </select>
+        <div id="piezasContainer" class="item-container"></div>
+        <button type="button" id="agregarPiezaBtn" data-action-call="agregarPieza">➕ Añadir Pieza</button>
+      </section>
+    </div>
+
+    <aside class="module-v2-rail module-v2-stack">
+      <section class="module-v2-block is-compact">
+        <h3>Estado de la Cotización</h3>
+        <div class="radio-group">
+          <label><input type="radio" name="cotizacionStatus" value="pendiente" checked> ⏳ Pendiente</label>
+          <label><input type="radio" name="cotizacionStatus" value="aprobada"> ✅ Aprobación total</label>
+          <label><input type="radio" name="cotizacionStatus" value="aprobada_parcial"> 🟡 Aprobación parcial</label>
+          <label><input type="radio" name="cotizacionStatus" value="ampliacion"> 🧩 Requiere ampliación</label>
+          <label><input type="radio" name="cotizacionStatus" value="rechazada"> ❌ Rechazada</label>
+        </div>
+        <p class="text-tip">Usa “Configurar aprobación” para definir qué mano de obra o piezas fueron aprobadas y qué queda pendiente por ampliar.</p>
+      </section>
+
+      <section class="module-v2-block is-accent quote-summary-block">
+        <p class="module-kicker">Resumen económico</p>
+        <button type="button" id="calcularCotizacionBtn" data-action-call="calcularTotal">🧮 Calcular Cotización</button>
+        <div class="result" id="resultado">Total: RD$ 0.00</div>
+      </section>
+    </aside>
+  </section>
+
+  <div class="button-group module-v2-actionbar">
+    <button type="button" class="btn-secondary" data-action-call="openQuoteApprovalModal">🗂️ Configurar aprobación</button>
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Abrir módulo Diagnóstico</button>
+    <button type="button" id="guardarCotizacionBtn" data-action-call="guardarCotizacion">💾 Guardar Cotización</button>
+    <button type="button" id="imprimirCotizacionBtn" data-action-call="imprimirCotizacion">🖨️ Imprimir Cotización</button>
+    <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepSeguimiento"]'>Abrir módulo Seguimiento</button>
+  </div>
+</div>

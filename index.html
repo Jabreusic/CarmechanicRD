@@ -1,0 +1,1383 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarsystemRD Avanzado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#mainContent">Saltar al contenido principal</a>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <div class="app-brand">
+          <div class="app-brand-shell">
+            <div id="systemHeaderLogoWrap" class="app-header-logo-wrap hidden">
+              <img id="systemHeaderLogo" class="app-header-logo" src="" alt="Logo del taller">
+            </div>
+            <div class="app-brand-copy">
+              <p class="app-brand-kicker">Plataforma operativa del taller</p>
+              <div class="app-brand-title-row">
+                <span class="app-brand-mark" aria-hidden="true">🔧</span>
+                <div>
+                  <h1>CarsystemRD</h1>
+                  <div class="app-subtitle">Sistema de gestión para recepción, diagnóstico, servicio y entrega</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="app-header-right">
+          <div class="app-header-overview" aria-label="Resumen operativo">
+            <article class="app-header-overview-card">
+              <span class="app-header-overview-label">Visitas activas</span>
+              <strong id="headerActiveVisitsCount">0</strong>
+            </article>
+            <article class="app-header-overview-card">
+              <span class="app-header-overview-label">Cobro pendiente</span>
+              <strong id="headerPendingCollectionTotal">RD$ 0.00</strong>
+            </article>
+            <article class="app-header-overview-card">
+              <span class="app-header-overview-label">Alertas</span>
+              <strong id="headerAlertsCount">0</strong>
+            </article>
+          </div>
+          <button
+            type="button"
+            class="app-header-config-btn"
+            data-main-tab-target="configuracion"
+            data-action="shell-open-tab"
+            data-tab="configuracion"
+          >
+            ⚙️ Configuración
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-label="Navegación principal del taller">
+        <section class="shell-sidebar-card shell-sidebar-overview">
+          <p class="shell-sidebar-kicker">UI V2</p>
+          <h2>Centro operativo</h2>
+          <p class="text-tip">El flujo principal vive aquí: expediente activo, bandejas, cobro y acciones rápidas.</p>
+          <div class="shell-sidebar-actions">
+            <button type="button" class="btn-primary" data-action="shell-open-tab" data-tab="dashboard">Abrir bandejas</button>
+            <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="cotStepCliente">Nuevo expediente</button>
+          </div>
+          <div class="shell-sidebar-mini-stats">
+            <article>
+              <span>Visitas abiertas</span>
+              <strong id="sidebarActiveVisitsCount">0</strong>
+            </article>
+            <article>
+              <span>Listas para cobro</span>
+              <strong id="sidebarReadyBillingCount">0</strong>
+            </article>
+          </div>
+        </section>
+
+        <div class="tabs main-workflow-tabs">
+          <div class="sidebar-nav-group">
+            <p class="sidebar-nav-label">Vista general</p>
+            <button class="tab-button active" data-main-tab-target="dashboard" data-action="shell-open-tab" data-tab="dashboard">📊 Dashboard</button>
+          </div>
+
+          <div class="sidebar-nav-group">
+            <p class="sidebar-nav-label">Flujo del taller</p>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepCliente" data-action="shell-open-tab" data-tab="cotStepCliente">
+              <span class="module-main-tab-label">👥 Clientes y Vehículos</span>
+            </button>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepOrden" data-action="shell-open-tab" data-tab="cotStepOrden">
+              <span class="module-main-tab-label">📋 Entrada</span>
+            </button>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepDiagnostico" data-action="shell-open-tab" data-tab="cotStepDiagnostico">
+              <span class="module-main-tab-label">🧪 Diagnóstico</span>
+            </button>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepServicio" data-action="shell-open-tab" data-tab="cotStepServicio">
+              <span class="module-main-tab-label">💰 Cotización</span>
+            </button>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepSeguimiento" data-action="shell-open-tab" data-tab="cotStepSeguimiento">
+              <span class="module-main-tab-label">🛠️ Seguimiento</span>
+            </button>
+            <button class="tab-button module-main-tab" data-main-tab-target="cotStepSalida" data-action="shell-open-tab" data-tab="cotStepSalida">
+              <span class="module-main-tab-label">🚗 Salida</span>
+            </button>
+          </div>
+
+          <div class="sidebar-nav-group">
+            <p class="sidebar-nav-label">Administración</p>
+            <button class="tab-button" data-main-tab-target="facturacion" data-action="shell-open-tab" data-tab="facturacion">🧾 Facturación</button>
+            <button class="tab-button" data-main-tab-target="gestionYCatalogos" data-action="shell-open-tab" data-tab="gestionYCatalogos">📁 Gestión</button>
+          </div>
+        </div>
+
+        <section class="shell-sidebar-card shell-sidebar-note">
+          <p class="shell-sidebar-kicker">Flujo consolidado</p>
+          <strong>Vehículos integrados en Clientes</strong>
+          <p class="text-tip">La gestión de vehículos ya no aparece como módulo separado. Todo el contexto maestro vive dentro de Clientes y Vehículos.</p>
+        </section>
+      </aside>
+
+      <main id="mainContent" class="app-main" tabindex="-1">
+        <div class="container">
+          <section id="activeWorkflowHeader" class="active-workflow-header hidden">
+            <div class="active-workflow-compact">
+              <div class="active-workflow-compact-copy">
+                <p class="active-workflow-kicker">Expediente activo</p>
+                <strong id="activeWorkflowCompactTitle">Sin expediente cargado</strong>
+                <p id="activeWorkflowCompactMeta" class="active-workflow-compact-meta">Sin OT · RD$ 0.00 · Abrir recepción</p>
+              </div>
+              <div class="active-workflow-compact-actions">
+                <button type="button" id="activeWorkflowPrimaryAction" class="btn-primary hidden">Abrir siguiente acción</button>
+                <button type="button" id="activeWorkflowToggleBtn" class="btn-secondary" data-action="shell-toggle-workflow-summary" aria-expanded="false">Ver detalle</button>
+              </div>
+            </div>
+
+            <div id="activeWorkflowDetails" class="active-workflow-details hidden">
+              <div class="active-workflow-status-strip">
+                <span id="activeWorkflowOperationalPill" class="dashboard-module-chip is-pending">Operativo: Sin seguimiento</span>
+                <span id="activeWorkflowCommercialPill" class="dashboard-module-chip is-pending">Comercial: Sin cotización</span>
+                <span id="activeWorkflowCollectionPill" class="dashboard-module-chip is-pending">Cobro: Sin factura</span>
+              </div>
+
+              <div class="active-workflow-progress-strip">
+                <div class="active-workflow-progress-copy">
+                  <strong id="activeWorkflowProgressValue">0%</strong>
+                  <span id="activeWorkflowProgressMeta">0 de 6 módulos listos</span>
+                </div>
+                <div class="dashboard-progress-track active-workflow-progress-track">
+                  <div id="activeWorkflowProgressBar" class="dashboard-progress-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="active-workflow-header-main">
+                <div class="active-workflow-heading">
+                  <h2 id="activeWorkflowTitle">Sin expediente cargado</h2>
+                  <p id="activeWorkflowMeta" class="text-tip">Selecciona una visita para ver cliente, vehículo, OT, saldo y siguiente acción.</p>
+                </div>
+                <div class="active-workflow-actions">
+                  <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="dashboard">Ver bandejas</button>
+                  <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="cotStepCliente">Abrir maestro</button>
+                </div>
+              </div>
+
+              <div class="active-workflow-grid">
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Cliente</p>
+                  <strong id="activeWorkflowClient">No seleccionado</strong>
+                  <span id="activeWorkflowClientMeta">Sin teléfono o identificación.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Vehículo</p>
+                  <strong id="activeWorkflowVehicle">No seleccionado</strong>
+                  <span id="activeWorkflowVehicleMeta">Sin placa ni chasis.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">OT / Visita</p>
+                  <strong id="activeWorkflowOrder">Sin OT</strong>
+                  <span id="activeWorkflowOrderMeta">Todavía no hay orden de entrada vinculada.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Estado operativo</p>
+                  <strong id="activeWorkflowOperationalStatus">Sin seguimiento</strong>
+                  <span id="activeWorkflowOperationalMeta">Pendiente de iniciar flujo operativo.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Estado comercial</p>
+                  <strong id="activeWorkflowCommercialStatus">Sin cotización</strong>
+                  <span id="activeWorkflowCommercialMeta">Aún no existe decisión comercial sobre la visita.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Estado de cobro</p>
+                  <strong id="activeWorkflowCollectionStatus">Sin factura</strong>
+                  <span id="activeWorkflowCollectionMeta">La visita todavía no entra a facturación.</span>
+                </article>
+                <article class="active-workflow-card">
+                  <p class="active-workflow-label">Saldo</p>
+                  <strong id="activeWorkflowBalance">RD$ 0.00</strong>
+                  <span id="activeWorkflowBalanceMeta">Sin factura asociada.</span>
+                </article>
+                <article class="active-workflow-card is-accent">
+                  <p class="active-workflow-label">Próxima acción</p>
+                  <strong id="activeWorkflowNextAction">Abrir recepción</strong>
+                  <span id="activeWorkflowNextActionMeta">El sistema sugerirá el siguiente paso del expediente.</span>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <div id="appNoticeHost" class="app-notice-host hidden" aria-live="polite" aria-atomic="true" role="status">
+            <div id="appNoticeCard" class="app-notice-card">
+              <div>
+                <p id="appNoticeKicker" class="modal-kicker">Aviso</p>
+                <strong id="appNoticeTitle">Mensaje del sistema</strong>
+                <p id="appNoticeMessage">Aquí se mostrarán mensajes de guía y confirmación.</p>
+              </div>
+              <button type="button" class="modal-close-btn" data-action="shell-hide-notice">✕</button>
+            </div>
+          </div>
+
+          <section id="mobileWorkflowStrip" class="app-mobile-workflow-strip hidden" aria-label="Resumen rapido del expediente">
+            <div class="app-mobile-workflow-strip-main">
+              <div>
+                <p class="app-mobile-workflow-kicker">Expediente activo</p>
+                <strong id="mobileWorkflowTitle">Sin expediente cargado</strong>
+                <p id="mobileWorkflowMeta" class="app-mobile-workflow-meta">Selecciona una visita para continuar.</p>
+              </div>
+              <div class="app-mobile-workflow-pill-stack">
+                <span id="mobileWorkflowBalance" class="app-mobile-workflow-pill">RD$ 0.00</span>
+                <span id="mobileWorkflowNext" class="app-mobile-workflow-pill is-accent">Abrir recepcion</span>
+              </div>
+            </div>
+            <div class="app-mobile-workflow-progress">
+              <div class="dashboard-progress-track app-mobile-workflow-progress-track">
+                <div id="mobileWorkflowProgressBar" class="dashboard-progress-fill" style="width: 0%;"></div>
+              </div>
+              <p id="mobileWorkflowProgressMeta" class="dashboard-progress-text">0 de 6 módulos listos</p>
+            </div>
+            <button type="button" id="mobileWorkflowPrimaryAction" class="btn-primary app-mobile-workflow-action hidden">Abrir siguiente accion</button>
+          </section>
+
+      <div id="dashboard" class="tab-content active section dashboard-shell">
+        <div class="dashboard-hero">
+          <div>
+            <p class="module-kicker">Centro de control</p>
+            <h2>Dashboard Operativo</h2>
+            <p class="text-tip">Prioriza qué visita atender ahora, qué ya puede cobrarse y qué necesita intervención antes de entregar.</p>
+          </div>
+          <div class="dashboard-hero-actions">
+            <button type="button" class="btn-primary" data-action="shell-open-tab" data-tab="cotStepCliente">Crear expediente</button>
+            <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="facturacion">Ir a cobros</button>
+          </div>
+        </div>
+
+        <div class="dashboard-mobile-quickbar" aria-label="Resumen rapido movil">
+          <article class="dashboard-mobile-quickcard">
+            <span>Activas</span>
+            <strong id="dashboardMobileVisitsCount">0</strong>
+          </article>
+          <article class="dashboard-mobile-quickcard">
+            <span>Cobro</span>
+            <strong id="dashboardMobileReadyBillingCount">0</strong>
+          </article>
+          <article class="dashboard-mobile-quickcard">
+            <span>Entrega</span>
+            <strong id="dashboardMobileReadyDeliveryCount">0</strong>
+          </article>
+          <article class="dashboard-mobile-quickcard is-accent">
+            <span>Alertas</span>
+            <strong id="dashboardMobileAlertsCount">0</strong>
+          </article>
+        </div>
+
+        <div class="dashboard-kpi-grid">
+          <article class="dashboard-kpi-card">
+            <span class="dashboard-kpi-label">Visitas activas</span>
+            <strong id="dashboardVisitsCount" class="dashboard-kpi-value">0</strong>
+            <p class="text-tip">Órdenes abiertas con trabajo pendiente o en progreso.</p>
+          </article>
+          <article class="dashboard-kpi-card">
+            <span class="dashboard-kpi-label">Listas para facturar</span>
+            <strong id="dashboardReadyBillingCount" class="dashboard-kpi-value">0</strong>
+            <p class="text-tip">Visitas comercialmente aprobadas y operativamente listas para cobro.</p>
+          </article>
+          <article class="dashboard-kpi-card">
+            <span class="dashboard-kpi-label">Listas para entregar</span>
+            <strong id="dashboardReadyDeliveryCount" class="dashboard-kpi-value">0</strong>
+            <p class="text-tip">Vehículos listos o entregados según el seguimiento.</p>
+          </article>
+          <article class="dashboard-kpi-card dashboard-kpi-card-accent">
+            <span class="dashboard-kpi-label">Saldo pendiente total</span>
+            <strong id="dashboardPendingCollectionTotal" class="dashboard-kpi-value">RD$ 0.00</strong>
+            <p class="text-tip">Cobro acumulado todavía pendiente en facturas emitidas.</p>
+          </article>
+        </div>
+
+        <div id="dashboardAlertRail" class="dashboard-alert-rail hidden" aria-live="polite"></div>
+
+        <div class="dashboard-grid dashboard-grid-v2">
+          <div class="dashboard-card dashboard-card-wide dashboard-queue-board-card">
+            <div class="dashboard-card-header-inline">
+              <h3>🗂️ Bandejas por Visita</h3>
+              <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="cotStepCliente">Abrir maestro</button>
+            </div>
+            <div class="dashboard-queue-board">
+              <section class="dashboard-queue-column">
+                <h4>Recepción / Diagnóstico</h4>
+                <ul id="dashboardQueueDiagnosticoList">
+                  <li>No hay visitas en recepción.</li>
+                </ul>
+              </section>
+              <section class="dashboard-queue-column">
+                <h4>Cotización / Aprobación</h4>
+                <ul id="dashboardQueueCotizacionList">
+                  <li>No hay expedientes esperando cotización.</li>
+                </ul>
+              </section>
+              <section class="dashboard-queue-column">
+                <h4>Taller / Entrega</h4>
+                <ul id="dashboardQueueTallerList">
+                  <li>No hay vehículos en taller.</li>
+                </ul>
+              </section>
+              <section class="dashboard-queue-column">
+                <h4>Facturación / Cobro</h4>
+                <ul id="dashboardQueueCobroList">
+                  <li>No hay facturas pendientes.</li>
+                </ul>
+              </section>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="dashboard-card-header-inline">
+              <h3>🔔 Alertas Automáticas</h3>
+              <span id="dashboardAlertsCountBadge" class="dashboard-module-chip is-pending">0 activas</span>
+            </div>
+            <ul id="dashboardAlertsList" class="dashboard-alert-list">
+              <li>No hay alertas automáticas por retrasos ni vehículos listos.</li>
+            </ul>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>📈 Avance Global de Módulos</h3>
+            <div id="dashboardModuleSummary" class="dashboard-module-summary">
+              <div class="dashboard-progress-track">
+                <div id="dashboardModuleProgressBar" class="dashboard-progress-fill" style="width: 0%;"></div>
+              </div>
+              <p id="dashboardModuleProgressText" class="dashboard-progress-text">0 de 6 módulos completos</p>
+              <div id="dashboardModuleStatusList" class="dashboard-module-status-list"></div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Clientes Recientes</h3>
+            <ul id="clientesRecientesList">
+              <li>No hay clientes recientes.</li>
+            </ul>
+            <button type="button" data-action="shell-open-tab" data-tab="cotStepCliente">Ver Todos los Clientes</button>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Cotizaciones Pendientes</h3>
+            <ul id="cotizacionesPendientesList">
+              <li>No hay cotizaciones pendientes.</li>
+            </ul>
+            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">Ver Historial de Cotizaciones</button>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Cotizaciones Aprobadas Recientes</h3>
+            <ul id="cotizacionesAprobadasList">
+              <li>No hay cotizaciones aprobadas.</li>
+            </ul>
+            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">Ver Historial de Cotizaciones</button>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>🧾 Facturas Recientes</h3>
+            <ul id="facturasRecientesList">
+              <li>No hay facturas emitidas.</li>
+            </ul>
+            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialFacturasTab">Ver Todas las Facturas</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cotStepCliente" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/cliente.html"></div>
+      <div id="cotStepOrden" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/entrada.html"></div>
+      <div id="cotStepDiagnostico" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/diagnostico.html"></div>
+      <div id="cotStepServicio" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/cotizacion.html"></div>
+      <div id="cotStepSeguimiento" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/seguimiento.html"></div>
+      <div id="cotStepSalida" class="tab-content section print-visible module-tab-content" data-partial="assets/partials/modules/salida.html"></div>
+
+      <div id="facturacion" class="tab-content section">
+        <h2>Facturación</h2>
+
+        <div class="billing-summary-grid">
+          <article class="billing-stat-card">
+            <p class="billing-stat-label">Facturas Emitidas</p>
+            <p id="facturacionTotalEmitidas" class="billing-stat-value">0</p>
+            <p class="text-tip">Total de comprobantes generados en el sistema.</p>
+          </article>
+          <article class="billing-stat-card">
+            <p class="billing-stat-label">Monto Facturado</p>
+            <p id="facturacionMontoTotal" class="billing-stat-value">RD$ 0.00</p>
+            <p class="text-tip">Suma acumulada de facturas emitidas.</p>
+          </article>
+          <article class="billing-stat-card">
+            <p class="billing-stat-label">Monto Cobrado</p>
+            <p id="facturacionMontoCobrado" class="billing-stat-value">RD$ 0.00</p>
+            <p class="text-tip">Pagos registrados entre anticipos y abonos.</p>
+          </article>
+          <article class="billing-stat-card">
+            <p class="billing-stat-label">Saldo Pendiente</p>
+            <p id="facturacionSaldoPendiente" class="billing-stat-value">RD$ 0.00</p>
+            <p class="text-tip">Balance todavía pendiente de cobro.</p>
+          </article>
+          <article class="billing-stat-card">
+            <p class="billing-stat-label">Pendientes de Facturar</p>
+            <p id="facturacionPendientesCount" class="billing-stat-value">0</p>
+            <p class="text-tip">Cotizaciones comercialmente aprobadas y operativamente listas para facturar.</p>
+          </article>
+        </div>
+
+        <div class="billing-panel-grid">
+          <section class="billing-panel-card">
+            <h3>Cotizaciones Listas para Facturar</h3>
+            <div id="facturacionPendientesList" class="billing-pending-list"></div>
+          </section>
+
+          <section class="billing-panel-card">
+            <h3>Registrar Pago</h3>
+            <div class="billing-payment-form">
+              <label for="facturaPagoSelect">Factura</label>
+              <select id="facturaPagoSelect" data-change-action="facturacion-resumen-pago">
+                <option value="">-- Selecciona una factura --</option>
+              </select>
+
+              <div id="facturacionPagoResumen" class="billing-payment-summary">
+                Selecciona una factura para ver su saldo y registrar pagos.
+              </div>
+
+              <div class="billing-payment-grid">
+                <div>
+                  <label for="pagoFecha">Fecha del pago</label>
+                  <input type="date" id="pagoFecha">
+                </div>
+                <div>
+                  <label for="pagoMonto">Monto</label>
+                  <input type="number" id="pagoMonto" min="0.01" step="0.01" placeholder="0.00">
+                </div>
+              </div>
+
+              <label for="pagoMetodo">Método de pago</label>
+              <select id="pagoMetodo">
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="cheque">Cheque</option>
+                <option value="otro">Otro</option>
+              </select>
+
+              <label for="pagoReferencia">Referencia</label>
+              <input type="text" id="pagoReferencia" placeholder="No. transacción, recibo o referencia interna">
+
+              <label for="pagoNota">Nota</label>
+              <textarea id="pagoNota" rows="3" placeholder="Ej: anticipo inicial, abono parcial, pago contra entrega..."></textarea>
+
+              <div class="button-group">
+                <button type="button" class="btn-success" data-action="facturacion-registrar-pago">💵 Registrar Pago</button>
+                <button type="button" class="btn-secondary" data-action="facturacion-limpiar-pago">Limpiar</button>
+              </div>
+            </div>
+
+            <h4 class="label-mt">Acciones Rápidas</h4>
+            <div class="button-group">
+              <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">Ver Cotizaciones Aprobadas</button>
+              <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialFacturasTab">Abrir Historial de Facturas</button>
+            </div>
+            <p class="text-tip">Facturación responde al estado comercial y operativo. La salida exige además factura emitida y pago completo.</p>
+          </section>
+        </div>
+
+        <section class="billing-panel-card billing-history-card">
+          <h3>Historial de Facturación</h3>
+          <label for="filtroFacturacion">Buscar Factura (Nº/Cliente/Placa/Cotización):</label>
+          <input type="text" id="filtroFacturacion" data-input-action="facturacion-filtrar" placeholder="Escribe para buscar...">
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nº Factura</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Vehículo (Placa)</th>
+                  <th>Estado Cobro</th>
+                  <th>Saldo</th>
+                  <th>Total</th>
+                  <th>Ref. Cotización</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="listaFacturacionTable">
+                <tr><td colspan="9" class="text-center">No hay facturas emitidas.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="gestionYCatalogos" class="tab-content section">
+        <h2>Gestión de Datos</h2>
+
+        <div class="sub-tabs">
+          <button class="sub-tab-button active" data-action="shell-open-subtab" data-subtab="historialCotizacionesTab">Historial de Cotizaciones</button>
+            <button class="sub-tab-button" data-action="shell-open-subtab" data-subtab="historialOrdenesEntradaTab">Órdenes de Entrada</button>
+            <button class="sub-tab-button" data-action="shell-open-subtab" data-subtab="catalogoServiciosTab">Catálogo de Servicios</button>
+            <button class="sub-tab-button" data-action="shell-open-subtab" data-subtab="catalogoPiezasTab">Catálogo de Piezas</button>
+            <button class="sub-tab-button" data-action="shell-open-subtab" data-subtab="historialFacturasTab">🧾 Facturas</button>
+            <button class="sub-tab-button" data-action="shell-open-subtab" data-subtab="postventaTab">🛎️ Postventa</button>
+        </div>
+
+        <div id="historialCotizacionesTab" class="sub-tab-content active">
+            <h3>Historial de Cotizaciones</h3>
+            <label for="filtroCotizaciones">Buscar Cotización (ID/Cliente/Placa):</label>
+            <input type="text" id="filtroCotizaciones" data-input-action="gestion-filtrar-cotizaciones" placeholder="Escribe para buscar...">
+            <label for="filtroEstadoCotizacion">Filtrar por Estado:</label>
+            <select id="filtroEstadoCotizacion" data-change-action="gestion-filtrar-cotizaciones-estado">
+                <option value="todos">Todos</option>
+                <option value="pendiente">Pendientes</option>
+              <option value="aprobada">Aprobadas totales</option>
+              <option value="aprobada_parcial">Aprobadas parciales</option>
+              <option value="ampliacion">Requieren ampliación</option>
+                <option value="rechazada">Rechazadas</option>
+            </select>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID Cotización</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vehículo (Placa)</th>
+                            <th>Total</th>
+                            <th>Estado Comercial</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaCotizacionesTable">
+                        <tr><td colspan="7" class="text-center">No hay cotizaciones guardadas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-tip">Haz clic en una cotización para cargarla o cambiar su estado.</p>
+        </div>
+
+          <div id="historialOrdenesEntradaTab" class="sub-tab-content">
+            <h3>Historial de Órdenes de Entrada</h3>
+            <label for="filtroOrdenesEntrada">Buscar Orden de Entrada (ID/Cliente/Placa/Chasis/Motivo):</label>
+            <input type="text" id="filtroOrdenesEntrada" data-input-action="gestion-filtrar-ordenes" placeholder="Escribe para buscar...">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID Orden</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Vehículo (Placa)</th>
+                    <th>Motivo</th>
+                    <th>Últ. guardado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="listaOrdenesEntradaTable">
+                  <tr><td colspan="7" class="text-center">No hay órdenes de entrada guardadas.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="text-tip">Puedes cargar una orden guardada, reimprimirla o eliminarla del historial.</p>
+          </div>
+
+        <div id="catalogoServiciosTab" class="sub-tab-content">
+            <h3>Catálogo de Servicios Predeterminados</h3>
+            <label for="nombreServicioCatalogo">Nombre del Servicio</label>
+            <input type="text" id="nombreServicioCatalogo" placeholder="Ej: Cambio de Aceite, Revisión de Frenos">
+            <label for="horasServicioCatalogo">Horas Estimadas</label>
+            <input type="number" id="horasServicioCatalogo" min="0.5" step="0.5" value="1">
+            <label for="dificultadServicioCatalogo">Nivel de Dificultad</label>
+            <select id="dificultadServicioCatalogo">
+                <option value="1.0">Fácil</option>
+                <option value="1.2" selected>Medio</option>
+                <option value="1.5">Difícil</option>
+                <option value="2.0">Muy difícil</option>
+            </select>
+            <label for="experienciaServicioCatalogo">Experiencia del Técnico</label>
+            <select id="experienciaServicioCatalogo">
+                <option value="0.8">Aprendiz</option>
+                <option value="1.0" selected>Intermedio</option>
+                <option value="1.3">Muy experto</option>
+            </select>
+            <div class="button-group">
+                <button type="button" data-action="gestion-guardar-servicio">Guardar Servicio</button>
+                <button type="button" class="btn-danger" data-action="gestion-eliminar-servicio">Eliminar Servicio</button>
+            </div>
+            <label for="selectServicioCatalogoGestion" class="label-mt">Seleccionar Servicio a Editar:</label>
+            <select id="selectServicioCatalogoGestion" data-change-action="gestion-preview-servicio">
+                <option value="">-- Seleccionar un servicio guardado --</option>
+            </select>
+        </div>
+
+        <div id="catalogoPiezasTab" class="sub-tab-content">
+            <h3>Catálogo de Piezas</h3>
+            <label for="nombrePiezaCatalogo">Nombre de la Pieza</label>
+            <input type="text" id="nombrePiezaCatalogo" placeholder="Ej: Filtro de Aceite, Pastillas de Freno">
+            <label for="costoPiezaCatalogo">Costo Unitario (RD$)</label>
+            <input type="number" id="costoPiezaCatalogo" min="0" step="0.01" value="0">
+            <label for="margenPiezaCatalogo">Margen de Ganancia (Ej: 1.3 para 30%)</label>
+            <input type="number" id="margenPiezaCatalogo" min="1.0" step="0.01" value="1.3">
+            <div class="button-group">
+                <button type="button" data-action="gestion-guardar-pieza">Guardar Pieza</button>
+                <button type="button" class="btn-danger" data-action="gestion-eliminar-pieza">Eliminar Pieza</button>
+            </div>
+            <label for="selectPiezaCatalogoGestion" class="label-mt">Seleccionar Pieza a Editar:</label>
+            <select id="selectPiezaCatalogoGestion" data-change-action="gestion-preview-pieza">
+                <option value="">-- Seleccionar una pieza guardada --</option>
+            </select>
+        </div>
+
+        <!-- ===== HISTORIAL DE FACTURAS ===== -->
+        <div id="historialFacturasTab" class="sub-tab-content">
+            <h3>🧾 Historial de Facturas</h3>
+            <label for="filtroFacturas">Buscar Factura (Nº/Cliente/Placa/Cotización):</label>
+            <input type="text" id="filtroFacturas" data-input-action="gestion-filtrar-facturas" placeholder="Escribe para buscar...">
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nº Factura</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vehículo (Placa)</th>
+                          <th>Estado Cobro</th>
+                          <th>Saldo</th>
+                            <th>Total</th>
+                            <th>Ref. Cotización</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaFacturasTable">
+                        <tr><td colspan="9" class="text-center">No hay facturas emitidas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+                  <p class="text-tip">Las facturas se generan desde cotizaciones <strong>Aprobadas</strong> y con trabajo <strong>Listo para entrega</strong> o <strong>Entregado</strong>.</p>
+        </div>
+
+        <div id="postventaTab" class="sub-tab-content">
+          <h3>🛎️ Postventa e Inteligencia</h3>
+          <div class="postventa-summary-grid">
+            <article class="billing-stat-card">
+              <p class="billing-stat-label">Recordatorios activos</p>
+              <p id="postventaReminderCount" class="billing-stat-value">0</p>
+              <p class="text-tip">Mantenimientos y garantías pendientes de seguimiento.</p>
+            </article>
+            <article class="billing-stat-card">
+              <p class="billing-stat-label">Reingresos por garantía</p>
+              <p id="postventaWarrantyReentryCount" class="billing-stat-value">0</p>
+              <p class="text-tip">OT creadas por reclamos dentro de garantía.</p>
+            </article>
+            <article class="billing-stat-card">
+              <p class="billing-stat-label">Tiempo promedio</p>
+              <p id="postventaAverageCycle" class="billing-stat-value">0 d</p>
+              <p class="text-tip">Promedio de días desde entrada hasta entrega.</p>
+            </article>
+            <article class="billing-stat-card">
+              <p class="billing-stat-label">Margen promedio</p>
+              <p id="postventaAverageMargin" class="billing-stat-value">0%</p>
+              <p class="text-tip">Margen bruto estimado sobre expedientes cerrados.</p>
+            </article>
+          </div>
+
+          <div class="postventa-grid">
+            <section class="billing-panel-card">
+              <h4>Recordatorios de mantenimiento y garantía</h4>
+              <div id="postventaReminderList" class="postventa-list"></div>
+            </section>
+
+            <section class="billing-panel-card">
+              <h4>Métricas por técnico y tipos de fallas</h4>
+              <div id="postventaAnalyticsPanel" class="postventa-analytics-panel"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div id="configuracion" class="tab-content section print-visible">
+        <h2>Configuración General del Taller</h2>
+
+        <div class="config-grid">
+          <section class="config-card">
+            <h3>Datos del Taller</h3>
+            <label for="nombreEmpresaPrint">Nombre de tu Negocio</label>
+            <input type="text" id="nombreEmpresaPrint" value="Mi Taller Mecánico S.R.L.">
+            <label for="telefonoEmpresa">Teléfono del Taller</label>
+            <input type="text" id="telefonoEmpresa" value="" placeholder="Ej: 809-555-1234">
+            <label for="emailEmpresa">Correo del Taller</label>
+            <input type="text" id="emailEmpresa" value="" placeholder="Ej: contacto@taller.com">
+            <label for="direccionEmpresa">Dirección</label>
+            <textarea id="direccionEmpresa" rows="3" placeholder="Dirección física o referencia"></textarea>
+            <label for="logoFile">Cargar Logo (PNG)</label>
+            <input type="file" id="logoFile" accept="image/png" data-change-action="configuracion-logo">
+            <div class="button-group" style="margin-top: 10px;">
+              <button type="button" class="btn-secondary" data-action="configuracion-eliminar-logo">Eliminar logo guardado</button>
+            </div>
+            <div id="logoPreviewContainer" class="print-entry-card hidden" style="margin-top: 12px; max-width: 280px;">
+              <span class="print-card-kicker">Logo actual</span>
+              <h4>Vista previa guardada</h4>
+              <img id="logoPreviewImage" src="" alt="Vista previa del logo" style="max-width: 100%; max-height: 120px; object-fit: contain; display: block; margin-top: 8px;">
+            </div>
+            <p id="logoPreviewStatus" class="text-hint">*El logo se mostrará en cotizaciones, facturas y documentos impresos si se guarda correctamente.</p>
+          </section>
+
+          <section class="config-card">
+            <h3>Precios y Facturación</h3>
+            <label for="precioBaseHora">Precio Base por Hora (RD$)</label>
+            <input type="number" id="precioBaseHora" min="0" step="0.01" value="1500">
+            <label for="aplicarItbis">Aplicar ITBIS</label>
+            <select id="aplicarItbis">
+              <option value="si" selected>Sí</option>
+              <option value="no">No</option>
+            </select>
+            <label for="porcentajeItbis">Porcentaje de ITBIS</label>
+            <input type="number" id="porcentajeItbis" min="0" step="0.01" value="18">
+            <label for="emitidoPor">Emitido por</label>
+            <input type="text" id="emitidoPor" value="[Tu Nombre/Nombre de la Empresa]" required />
+            <span class="error-message">Este campo es obligatorio.</span>
+            <label for="diasValidezCotizacion">Días de validez de cotización</label>
+            <input type="number" id="diasValidezCotizacion" min="1" step="1" value="7">
+            <label for="diasGarantiaServicio">Días de garantía de servicio</label>
+            <input type="number" id="diasGarantiaServicio" min="1" step="1" value="30">
+            <label for="kmGarantiaServicio">KM de garantía de servicio</label>
+            <input type="number" id="kmGarantiaServicio" min="0" step="100" value="1000">
+            <label for="diasRecordatorioMantenimiento">Días para recordatorio de mantenimiento</label>
+            <input type="number" id="diasRecordatorioMantenimiento" min="1" step="1" value="180">
+            <label for="horasAlertaRetraso">Horas para alerta de retraso</label>
+            <input type="number" id="horasAlertaRetraso" min="1" step="1" value="24">
+          </section>
+        </div>
+
+        <section class="config-card config-card-full">
+          <h3>Notas Importantes de Impresión</h3>
+          <label for="notasImportantes">Texto de Notas Importantes (una línea por punto)</label>
+          <textarea id="notasImportantes" rows="6">Esta cotización tiene una validez de 7 días hábiles a partir de la fecha de emisión.
+Los precios de las piezas pueden variar sin previo aviso debido a fluctuaciones del mercado. La cotización final se confirmará al momento de la aprobación del servicio.
+Se requiere un 50% de anticipo para la compra de piezas y/o el inicio de trabajos mayores.
+El tiempo estimado de trabajo es aproximado y puede variar según la complejidad inesperada o disponibilidad de piezas. Se notificará al cliente de cualquier retraso significativo.
+La garantía sobre el servicio es de 30 días o 1,000 km (lo que ocurra primero), aplicable únicamente al trabajo realizado. La garantía sobre las piezas se rige por la política del fabricante o proveedor.
+No nos hacemos responsables por fallas preexistentes en el vehículo no relacionadas con el servicio cotizado.
+Cualquier trabajo adicional no contemplado en esta cotización requerirá la aprobación expresa del cliente y se facturará por separado.
+La entrega del vehículo se realizará una vez el monto total de la factura haya sido saldado.</textarea>
+        </section>
+
+        <section class="config-card config-card-full">
+          <h3>Plantilla HTML de Impresión</h3>
+          <p class="text-tip">Configura encabezado, tipografía, espacio, títulos y pie de la plantilla reutilizable que usan los documentos comerciales.</p>
+          <div class="button-group" style="margin-bottom: 12px;">
+            <button type="button" class="btn-secondary" data-action="configuracion-preset" data-preset="clasico">Taller clásico</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-preset" data-preset="compacto">Compacto comercial</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-preset" data-preset="institucional">Institucional</button>
+          </div>
+          <div class="config-grid">
+            <div>
+              <label for="printPrimaryColor">Color principal</label>
+              <input type="color" id="printPrimaryColor" value="#1f2937">
+            </div>
+            <div>
+              <label for="printAccentColor">Color de acento</label>
+              <input type="color" id="printAccentColor" value="#ea580c">
+            </div>
+            <div>
+              <label for="printPaperSize">Tamaño de papel</label>
+              <select id="printPaperSize">
+                <option value="letter" selected>Letter</option>
+                <option value="a4">A4</option>
+              </select>
+            </div>
+            <div>
+              <label for="printDensity">Densidad visual</label>
+              <select id="printDensity">
+                <option value="compact" selected>Compacta</option>
+                <option value="comfortable">Amplia</option>
+              </select>
+            </div>
+            <div>
+              <label for="printFontFamily">Tipografía base</label>
+              <select id="printFontFamily">
+                <option value="inter" selected>Inter / Arial</option>
+                <option value="system">System UI</option>
+                <option value="serif">Georgia</option>
+              </select>
+            </div>
+            <div>
+              <label for="printHeaderLayout">Diseño del encabezado</label>
+              <select id="printHeaderLayout">
+                <option value="inline" selected>Horizontal</option>
+                <option value="stacked">Apilado</option>
+              </select>
+            </div>
+            <div>
+              <label for="printFooterAlign">Alineación del pie</label>
+              <select id="printFooterAlign">
+                <option value="left" selected>Izquierda</option>
+                <option value="center">Centro</option>
+                <option value="right">Derecha</option>
+              </select>
+            </div>
+            <div>
+              <label for="printSectionTitleStyle">Estilo de títulos</label>
+              <select id="printSectionTitleStyle">
+                <option value="line" selected>Subrayado</option>
+                <option value="filled">Resaltado</option>
+                <option value="minimal">Minimal</option>
+              </select>
+            </div>
+          </div>
+          <div class="config-grid" style="margin-top: 12px;">
+            <div>
+              <label for="printBaseFontSize">Tamaño de texto base (px)</label>
+              <input type="number" id="printBaseFontSize" min="12" max="18" step="1" value="15">
+            </div>
+            <div>
+              <label for="printPageMarginMm">Margen de página (mm)</label>
+              <input type="number" id="printPageMarginMm" min="4" max="20" step="1" value="8">
+            </div>
+            <div>
+              <label for="printBorderRadius">Radio de tarjetas (px)</label>
+              <input type="number" id="printBorderRadius" min="0" max="24" step="1" value="12">
+            </div>
+          </div>
+          <label for="printTemplateFooterText">Texto del pie de impresión</label>
+          <textarea id="printTemplateFooterText" rows="3" placeholder="Ej: Documento generado automáticamente para uso interno y entrega al cliente."></textarea>
+          <div class="button-group" style="margin-top: 12px;">
+            <label><input type="checkbox" id="printShowLogo" checked> Mostrar logo</label>
+            <label><input type="checkbox" id="printShowContact" checked> Mostrar teléfono/correo</label>
+            <label><input type="checkbox" id="printShowAddress" checked> Mostrar dirección</label>
+            <label><input type="checkbox" id="printShowHeaderMeta" checked> Mostrar bloque de metadatos</label>
+            <label><input type="checkbox" id="printShowKicker" checked> Mostrar kicker superior</label>
+          </div>
+          <div class="button-group" style="margin-top: 12px;">
+            <button type="button" class="btn-secondary" data-action="configuracion-vista-previa-html">Vista previa plantilla base</button>
+          </div>
+        </section>
+
+        <div class="config-actions">
+          <button type="button" class="btn-primary" data-action="configuracion-guardar">Guardar Configuración Completa</button>
+          <p class="text-tip">Estos cambios afectan cotizaciones nuevas, facturas e impresión.</p>
+        </div>
+
+        <section class="config-card config-card-full">
+          <h3>Impresos de Prueba</h3>
+          <p class="text-tip">Usa estos botones para revisar logo, encabezados, distribución y estilos de impresión sin depender de un expediente activo.</p>
+          <div class="button-group">
+            <button type="button" class="btn-secondary" data-action="configuracion-prueba-impresion" data-print-kind="cotizacion">Probar Cotización</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-prueba-impresion" data-print-kind="factura">Probar Factura</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-prueba-impresion" data-print-kind="entrada">Probar Orden de Entrada</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-prueba-impresion" data-print-kind="diagnostico">Probar Diagnóstico</button>
+            <button type="button" class="btn-secondary" data-action="configuracion-prueba-impresion" data-print-kind="salida">Probar Orden de Salida</button>
+          </div>
+        </section>
+
+        <h3>Estado de la Aplicación</h3>
+        <p id="unlockStatus"></p>
+        <button type="button" id="unlockAppBtn" class="btn-unlock" data-action="configuracion-unlock">Desbloquear Versión Completa</button>
+      </div>
+
+      <template id="configurablePrintShellTemplate">
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>__PRINT_WINDOW_TITLE__</title>
+            <style>
+              @page { size: __PRINT_PAGE_SIZE__ portrait; margin: __PRINT_PAGE_MARGIN_MM__mm; }
+              :root {
+                --print-primary: __PRINT_PRIMARY_COLOR__;
+                --print-accent: __PRINT_ACCENT_COLOR__;
+                --print-border: #d6dde6;
+                --print-surface: #ffffff;
+                --print-muted: #475569;
+                --print-ink: #1f2937;
+                --print-soft: #f8fafc;
+                --print-radius: __PRINT_BORDER_RADIUS_PX__px;
+              }
+              * { box-sizing: border-box; }
+              body { margin: 0; color: var(--print-ink); background: #ffffff; font-family: __PRINT_FONT_STACK__; font-size: __PRINT_BASE_FONT_SIZE_PX__px; }
+              .print-shell { padding: 14px 18px 18px; }
+              .print-shell-header { display: grid; grid-template-columns: 78px minmax(0, 1fr) 216px; gap: 10px; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--print-border); }
+              .print-shell-brand { display: flex; align-items: center; justify-content: center; min-height: 64px; }
+              .print-shell-brand img { max-width: 70px; max-height: 56px; object-fit: contain; display: block; }
+              .print-shell-copy { min-width: 0; }
+              .print-shell-kicker { margin: 0 0 2px; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--print-accent); }
+              .print-shell-copy h1 { margin: 0; color: var(--print-primary); font-size: 1.22rem; line-height: 1.04; text-transform: uppercase; }
+              .print-shell-copy h2 { margin: 2px 0 0; font-size: 0.88rem; color: var(--print-muted); font-weight: 700; line-height: 1.08; }
+              .print-shell-copy p { margin: 2px 0 0; font-size: 0.8rem; line-height: 1.22; word-break: break-word; }
+              .print-shell-meta { border-left: 1px solid var(--print-border); padding-left: 10px; display: grid; gap: 4px; }
+              .print-shell-meta-row { display: grid; gap: 1px; font-size: 0.8rem; }
+              .print-shell-meta-row span { color: var(--print-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+              .print-shell-meta-row strong { color: var(--print-primary); }
+              .print-shell-body { display: block; }
+              .print-shell-footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--print-border); font-size: 0.82rem; color: var(--print-muted); }
+              .hidden { display: none !important; }
+              h3 { color: var(--print-primary); margin-bottom: 10px; }
+              p { margin-bottom: 8px; font-size: 1.02rem; }
+              p strong { color: var(--print-primary); }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: auto; }
+              th, td { border: 1px solid #dbe1ea; padding: 10px; text-align: left; font-size: 0.94rem; vertical-align: top; }
+              th { background: #f4f7fb; color: var(--print-primary); font-weight: 700; }
+              tr:nth-child(even) { background: #fbfdff; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              thead { display: table-header-group; }
+              tfoot { display: table-footer-group; }
+              .print-info { margin-bottom: 14px; }
+              .print-info:not(.print-entry-top-grid) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+              .print-info:not(.print-entry-top-grid) > div { min-width: 0; }
+              .print-info.print-entry-top-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+              .print-entry-card { border: 1px solid var(--print-border); border-radius: var(--print-radius); padding: 10px 12px; background: var(--print-surface); min-width: 0; }
+              .print-entry-card h4 { margin: 2px 0 8px; font-size: 1rem; color: var(--print-primary); }
+              .print-entry-card p { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 8px; align-items: start; margin: 0 0 5px; font-size: 0.9rem; line-height: 1.25; }
+              .print-entry-card p:last-child { margin-bottom: 0; }
+              .print-entry-card p strong { display: block; color: var(--print-muted); font-weight: 700; }
+              .print-entry-card p span { display: block; min-width: 0; word-break: break-word; }
+              .print-card-kicker { display: inline-block; margin-bottom: 2px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--print-accent); }
+              .print-section-title { border-bottom: 1px solid var(--print-border); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; font-size: 1.15rem; color: var(--print-primary); text-align: left; }
+              .print-totals { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--print-border); }
+              .print-totals p { text-align: right; font-size: 1.05rem; margin-bottom: 5px; }
+              .print-final-total { font-size: 1.4rem; font-weight: 800; color: var(--print-primary); text-align: right; margin-top: 10px; }
+              .signature-block { margin-top: 18px; }
+              .diagnostic-signature-image { max-width: 320px; width: 100%; border: 1px solid var(--print-border); border-radius: var(--print-radius); }
+              .print-notes ul { margin: 0; padding-left: 20px; font-size: 0.94rem; line-height: 1.6; }
+              .print-notes h3 { text-align: left !important; }
+              .density-comfortable .print-shell { padding: 18px 22px 22px; }
+              .density-comfortable .print-shell-header { gap: 14px; margin-bottom: 16px; padding-bottom: 10px; }
+              .density-comfortable .print-entry-card { padding: 12px 14px; }
+              .density-comfortable th, .density-comfortable td { padding: 12px; }
+              .density-comfortable .print-shell-footer { margin-top: 22px; padding-top: 12px; }
+              .header-layout-stacked .print-shell-header { grid-template-columns: 1fr; text-align: left; }
+              .header-layout-stacked .print-shell-brand { justify-content: flex-start; min-height: 48px; }
+              .header-layout-stacked .print-shell-meta { border-left: none; border-top: 1px solid var(--print-border); padding-left: 0; padding-top: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+              .footer-align-center .print-shell-footer { text-align: center; }
+              .footer-align-right .print-shell-footer { text-align: right; }
+              .section-title-style-filled .print-section-title { border: 1px solid var(--print-border); border-radius: var(--print-radius); background: var(--print-soft); padding: 8px 12px; }
+              .section-title-style-filled .print-totals { border-top-width: 2px; }
+              .section-title-style-minimal .print-section-title { border-bottom: none; padding-bottom: 0; margin-bottom: 10px; }
+              .kicker-hidden .print-shell-kicker { display: none; }
+              @media print {
+                body { background: #ffffff; }
+                .print-shell { padding: 0; }
+              }
+            </style>
+          </head>
+          <body class="__PRINT_DENSITY_CLASS__ __PRINT_HEADER_LAYOUT_CLASS__ __PRINT_FOOTER_ALIGN_CLASS__ __PRINT_SECTION_TITLE_CLASS__ __PRINT_KICKER_CLASS__">
+            <div class="print-shell">
+              <header class="print-shell-header">
+                <div class="print-shell-brand">__PRINT_LOGO_HTML__</div>
+                <div class="print-shell-copy">
+                  <p class="print-shell-kicker">__PRINT_KICKER__</p>
+                  <h1>__PRINT_COMPANY_NAME__</h1>
+                  <h2>__PRINT_DOCUMENT_TITLE__</h2>
+                  __PRINT_SUBTITLE_HTML__
+                  __PRINT_CONTACT_HTML__
+                  __PRINT_ADDRESS_HTML__
+                </div>
+                __PRINT_META_HTML__
+              </header>
+              <main class="print-shell-body">__PRINT_BODY_HTML__</main>
+              __PRINT_FOOTER_HTML__
+            </div>
+          </body>
+        </html>
+      </template>
+
+      <div class="printable" id="printableArea">
+        <div class="print-header">
+          <img id="printLogo" src="" alt="Logo de la Empresa">
+          <h1>Cotización de Servicio</h1>
+          <h2>Mecánica Automotriz</h2>
+          <p id="pEmpresaContacto" class="hidden"></p>
+          <p id="pEmpresaDireccion" class="hidden"></p>
+          <p>Fecha: <span id="pFechaPrintHeader"></span></p>
+          <p>Validez: <span id="pValidezCotizacion"></span></p>
+          <p>Emitido por: <span id="pEmitidoPor"></span></p>
+        </div>
+        <hr />
+
+        <div class="print-info print-entry-top-grid">
+          <section class="print-entry-card">
+            <span class="print-card-kicker">Cliente</span>
+            <h4>Datos del cliente</h4>
+            <p><strong>Nombre:</strong> <span id="pNombreCliente"></span></p>
+            <p><strong>Tipo Identificación:</strong> <span id="pTipoIdentificacion"></span></p>
+            <p><strong>Identificación:</strong> <span id="pIdentificacion"></span></p>
+            <p id="pNombreEmpresaContainer" class="hidden">
+              <strong>Empresa:</strong> <span id="pNombreEmpresa"></span>
+            </p>
+            <p><strong>Teléfono:</strong> <span id="pTelefonoCliente"></span></p>
+            <p><strong>WhatsApp:</strong> <span id="pWhatsappCliente"></span></p>
+          </section>
+          <section class="print-entry-card">
+            <span class="print-card-kicker">Vehículo</span>
+            <h4>Datos del vehículo</h4>
+            <p><strong>Modelo:</strong> <span id="pVehiculoModelo"></span> (<span id="pVehiculoAnio"></span>)</p>
+            <p><strong>Combustible:</strong> <span id="pVehiculoCombustible"></span></p>
+            <p><strong>Chasis:</strong> <span id="pVehiculoChasis"></span></p>
+            <p><strong>Placa:</strong> <span id="pVehiculoPlaca"></span></p>
+          </section>
+        </div>
+
+        <div id="printCotizacionEntradaSection">
+          <h3 class="print-section-title">Orden de Entrada</h3>
+          <div class="print-entry-summary-grid">
+            <section class="print-entry-card print-entry-card-compact">
+              <span class="print-card-kicker">Recepción</span>
+              <h4>Motivo y condición</h4>
+              <p><strong>Motivo de entrada:</strong> <span id="pMotivoEntrada"></span></p>
+              <p><strong>Millaje de Entrada:</strong> <span id="pMillajeEntrada"></span></p>
+              <p><strong>¿Enciende?:</strong> <span id="pEnciende"></span></p>
+              <p><strong>Cómo Llegó:</strong> <span id="pModoLlegada"></span></p>
+            </section>
+            <section class="print-entry-card print-entry-card-compact">
+              <span class="print-card-kicker">Combustible</span>
+              <h4>Nivel registrado</h4>
+              <p><strong>Nivel:</strong> <span id="pCombustibleActual"></span></p>
+              <div class="print-fuel-meter">
+                <div id="pCombustibleActualBar" class="print-fuel-fill" style="width: 50%;"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="print-entry-summary-grid print-entry-summary-grid-compact">
+            <section class="print-entry-card print-entry-card-compact">
+              <span class="print-card-kicker">Tablero</span>
+              <h4>Luces registradas al ingreso</h4>
+              <div id="pLucesTableroList" class="print-chip-list"></div>
+            </section>
+
+            <section class="print-entry-card print-entry-card-compact">
+              <span class="print-card-kicker">Accesorios</span>
+              <h4>Pertenencias y accesorios</h4>
+              <div id="pAccesoriosList" class="print-chip-list"></div>
+            </section>
+          </div>
+
+          <div class="print-entry-diagram-layout">
+            <section class="print-entry-card print-entry-stack-card print-entry-diagram-card">
+              <span class="print-card-kicker">Diagrama</span>
+              <h4>Daños visibles al ingreso</h4>
+              <div id="pEntradaDamageFigure" class="print-entry-diagram hidden">
+                <img src="img/diagramas/car.jpg" alt="Diagrama del vehículo con daños visibles al ingreso">
+                <div id="pEntradaDamageMarkers" class="entry-diagram-markers"></div>
+              </div>
+              <p id="pEntradaDamageSummary" class="text-tip">Sin marcas registradas.</p>
+            </section>
+
+            <div class="print-entry-side-stack">
+              <section class="print-entry-card print-entry-card-compact">
+                <span class="print-card-kicker">Observaciones</span>
+                <h4>Notas de recepción</h4>
+                <p id="pObservacionesEntrada" class="print-entry-note">N/D</p>
+              </section>
+              <section id="pFirmaClienteEntradaBlock" class="print-entry-card print-entry-card-compact hidden">
+                <span class="print-card-kicker">Firma</span>
+                <h4>Aceptación del cliente</h4>
+                <img id="pFirmaClienteEntrada" class="diagnostic-signature-image" src="" alt="Firma del cliente en orden de entrada">
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div id="printCotizacionDiagnosticoSection">
+          <h3 class="print-section-title">Diagnóstico Inicial</h3>
+            <div class="print-diagnostic-layout">
+              <section class="print-entry-card print-diagnostic-card print-diagnostic-card-main">
+                <span class="print-card-kicker">Resumen técnico</span>
+                <h4>Hallazgos clave</h4>
+                <p id="pDiagnosticoInicial" class="print-diagnostic-note"></p>
+                <div class="print-diagnostic-meta-grid">
+                  <div class="print-diagnostic-meta-item">
+                    <span class="print-diagnostic-meta-label">Síntomas</span>
+                    <p id="pSintomasReportados"></p>
+                  </div>
+                  <div class="print-diagnostic-meta-item">
+                    <span class="print-diagnostic-meta-label">Pruebas</span>
+                    <p id="pPruebasRealizadas"></p>
+                  </div>
+                  <div class="print-diagnostic-meta-item">
+                    <span class="print-diagnostic-meta-label">Causa probable</span>
+                    <p id="pCausaProbable"></p>
+                  </div>
+                  <div class="print-diagnostic-meta-item">
+                    <span class="print-diagnostic-meta-label">Prioridad</span>
+                    <p id="pPrioridadDiagnostico"></p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="print-entry-card print-diagnostic-card print-diagnostic-card-side">
+                <span class="print-card-kicker">Semáforo</span>
+                <h4>Estado general</h4>
+                <div id="pSemaforoVehiculo" class="diagnostic-print-semaforo"></div>
+                <div id="pFirmaClienteDiagnosticoBlock" class="print-diagnostic-signature hidden">
+                  <p><strong>Aceptación visual del cliente</strong></p>
+                  <img id="pFirmaClienteDiagnostico" class="diagnostic-signature-image" src="" alt="Firma del cliente en hallazgos">
+                </div>
+              </section>
+            </div>
+            <div id="pDiagnosticoDetalle" class="diagnostic-print-list diagnostic-print-list-compact"></div>
+        </div>
+
+        <h3 class="print-section-title">Trabajo a Realizar</h3>
+        <p>
+          <strong>Descripción:</strong>
+          <span id="pTrabajo"></span>
+        </p>
+
+        <h3 class="print-section-title">Detalle del Servicio y Piezas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Cantidad/Horas</th>
+              <th>Precio Unit.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Mano de Obra</td>
+              <td id="pHorasServicio"></td>
+              <td id="pPrecioManoObraUnit"></td>
+              <td id="pPrecioServicio"></td>
+            </tr>
+          </tbody>
+          <tbody id="piezasPrint">
+            </tbody>
+        </table>
+
+        <div class="print-totals">
+          <p><strong>Subtotal:</strong> RD$ <span id="pSubtotal"></span></p>
+          <p id="pItbisContainer" class="hidden"><strong><span id="pItbisLabel">ITBIS (18%)</span>:</strong> RD$ <span id="pItbis"></span></p>
+          <p class="print-final-total"><strong>TOTAL FINAL:</strong> RD$ <span id="pTotal"></span></p>
+        </div>
+
+        <div class="print-notes">
+          <h3>Notas Importantes y Términos del Servicio:</h3>
+          <ul id="printNotesList">
+          </ul>
+          <div class="signature-block">
+            <p>_________________________</p>
+            <p>Firma del Cliente / Aceptación</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ÁREA IMPRIMIBLE: FACTURA ===== -->
+      <div class="printable" id="printableFacturaArea">
+        <div class="print-header">
+          <img id="fPrintLogo" src="" alt="Logo">
+          <h1 id="fNombreEmpresaPrint"></h1>
+          <p class="factura-badge" id="fTipoComprobante">FACTURA</p>
+          <p id="fEmpresaContacto" class="hidden"></p>
+          <p id="fEmpresaDireccion" class="hidden"></p>
+          <p>Nº: <strong><span id="fNumeroFactura"></span></strong> &nbsp;|&nbsp; Fecha: <span id="fFechaPrint"></span></p>
+          <p>Emitido por: <span id="fEmitidoPor"></span></p>
+          <p>Ref. Cotización: <span id="fRefCotizacion"></span></p>
+        </div>
+        <hr />
+        <div class="print-info">
+          <div>
+            <p><strong>Cliente:</strong> <span id="fNombreCliente"></span></p>
+            <p><strong>Identificación:</strong> <span id="fIdentificacion"></span></p>
+            <p id="fNombreEmpresaContainer" class="hidden"><strong>Empresa:</strong> <span id="fNombreEmpresa"></span></p>
+            <p><strong>Teléfono:</strong> <span id="fTelefono"></span></p>
+          </div>
+          <div>
+            <p><strong>Vehículo:</strong> <span id="fVehiculoModelo"></span> (<span id="fVehiculoAnio"></span>)</p>
+            <p><strong>Placa:</strong> <span id="fVehiculoPlaca"></span></p>
+            <p><strong>Chasis:</strong> <span id="fVehiculoChasis"></span></p>
+          </div>
+        </div>
+        <h3 class="print-section-title">Detalle de Servicios y Piezas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Cantidad/Horas</th>
+              <th>Precio Unit.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="fDetalleFactura"></tbody>
+        </table>
+        <div class="print-totals">
+          <p><strong>Subtotal:</strong> RD$ <span id="fSubtotal"></span></p>
+          <p id="fItbisContainer" class="hidden"><strong><span id="fItbisLabel">ITBIS (18%)</span>:</strong> RD$ <span id="fItbis"></span></p>
+          <p class="print-final-total"><strong id="fTotalLabel">TOTAL FACTURA:</strong> RD$ <span id="fTotal"></span></p>
+        </div>
+        <div class="print-notes">
+          <h3>Condiciones:</h3>
+          <ul>
+            <li id="fComprobanteNota">Esta factura constituye comprobante de los servicios prestados.</li>
+            <li>Garantía de 30 días o 1,000 km sobre el trabajo realizado (lo que ocurra primero).</li>
+            <li>Pagado en su totalidad a la entrega del vehículo.</li>
+          </ul>
+          <div class="signature-block">
+            <p>_________________________</p>
+            <p>Firma del Cliente / Recibido Conforme</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="printable" id="printableSalidaArea">
+        <div class="print-header">
+          <img id="sPrintLogo" src="" alt="Logo de la Empresa">
+          <h1>Orden de Salida</h1>
+          <h2 id="sNombreEmpresaPrint">CarsystemRD</h2>
+          <p id="sEmpresaContacto" class="hidden"></p>
+          <p id="sEmpresaDireccion" class="hidden"></p>
+          <p>Fecha de entrega: <span id="sFechaSalida"></span></p>
+          <p>Entregado por: <span id="sEntregadoPor"></span></p>
+          <p>Recibido por: <span id="sRecibidoPor"></span></p>
+        </div>
+        <hr />
+        <div class="print-info">
+          <div>
+            <p><strong>Cliente:</strong> <span id="sNombreCliente"></span></p>
+            <p><strong>Identificación:</strong> <span id="sIdentificacion"></span></p>
+            <p><strong>Teléfono:</strong> <span id="sTelefono"></span></p>
+          </div>
+          <div>
+            <p><strong>Vehículo:</strong> <span id="sVehiculoModelo"></span> (<span id="sVehiculoAnio"></span>)</p>
+            <p><strong>Placa:</strong> <span id="sVehiculoPlaca"></span></p>
+            <p><strong>Chasis:</strong> <span id="sVehiculoChasis"></span></p>
+          </div>
+        </div>
+
+        <h3 class="print-section-title">Estado de Entrega</h3>
+        <p><strong>Resultado:</strong> <span id="sEstadoSalida"></span></p>
+        <p><strong>Trabajo realizado:</strong> <span id="sTrabajoRealizado"></span></p>
+        <p><strong>Observaciones finales:</strong> <span id="sObservacionesSalida"></span></p>
+        <p><strong>Pendientes o no autorizados:</strong> <span id="sPendientesNoAutorizados"></span></p>
+
+        <h3 class="print-section-title">Checklist de Salida</h3>
+        <ul id="sChecklistSalida" class="print-chip-list"></ul>
+
+        <div id="sFirmaClienteSalidaBlock" class="print-diagnostic-signature hidden">
+          <p><strong>Firma del cliente al recibir</strong></p>
+          <img id="sFirmaClienteSalida" class="diagnostic-signature-image" src="" alt="Firma del cliente en orden de salida">
+        </div>
+
+        <div class="print-notes">
+          <h3>Condiciones de Entrega:</h3>
+          <ul>
+            <li>El cliente confirma la recepción del vehículo en el estado aquí descrito.</li>
+            <li>Los trabajos pendientes o no autorizados fueron informados antes de la entrega.</li>
+            <li>Cualquier garantía se rige por las condiciones indicadas en la cotización y/o factura.</li>
+          </ul>
+        </div>
+      </div>
+
+          <div data-partial="assets/partials/modals/diagnostic-part-modal.html"></div>
+          <div data-partial="assets/partials/modals/diagnostic-summary-modal.html"></div>
+
+          <div id="appDecisionModal" class="app-modal hidden" data-action="shell-decision-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="appDecisionTitle" tabindex="-1">
+            <div class="app-modal-dialog">
+              <div class="app-modal-header">
+                <div>
+                  <p id="appDecisionKicker" class="modal-kicker">Confirmación</p>
+                  <h3 id="appDecisionTitle">Revisa esta acción</h3>
+                </div>
+                <button type="button" class="modal-close-btn" data-action="shell-close-decision" data-confirm="false">✕</button>
+              </div>
+              <div class="app-modal-body">
+                <p id="appDecisionMessage" class="app-dialog-message">Mensaje de confirmación.</p>
+              </div>
+              <div class="app-modal-footer">
+                <button type="button" id="appDecisionCancelBtn" class="btn-secondary" data-action="shell-close-decision" data-confirm="false">Cancelar</button>
+                <button type="button" id="appDecisionConfirmBtn" class="btn-primary" data-action="shell-close-decision" data-confirm="true">Confirmar</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="quoteApprovalModal" class="app-modal hidden" data-action="shell-quote-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="quoteApprovalModalTitle" tabindex="-1">
+            <div class="app-modal-dialog app-modal-dialog-lg">
+              <div class="app-modal-header">
+                <div>
+                  <p class="modal-kicker">Aprobación comercial</p>
+                  <h3 id="quoteApprovalModalTitle">Definir respuesta del cliente</h3>
+                </div>
+                <button type="button" class="modal-close-btn" data-action="shell-close-quote-approval">✕</button>
+              </div>
+              <div class="app-modal-body">
+                <p id="quoteApprovalModalSummary" class="text-tip">Selecciona si la cotización fue aprobada total, parcial, rechazada o si requiere ampliación.</p>
+
+                <label for="quoteApprovalStatus">Estado comercial</label>
+                <select id="quoteApprovalStatus" data-change-action="shell-quote-approval-status">
+                  <option value="pendiente">Pendiente</option>
+                  <option value="aprobada">Aprobación total</option>
+                  <option value="aprobada_parcial">Aprobación parcial</option>
+                  <option value="ampliacion">Requiere ampliación</option>
+                  <option value="rechazada">Rechazada</option>
+                </select>
+
+                <div id="quoteApprovalScopeBlock" class="quote-approval-scope-block">
+                  <p class="active-workflow-label">Alcance aprobado</p>
+                  <label class="quote-approval-check" for="quoteApprovalLabor">
+                    <input type="checkbox" id="quoteApprovalLabor" data-change-action="shell-quote-approval-labor">
+                    Incluir mano de obra principal
+                  </label>
+                  <div id="quoteApprovalPiecesList" class="quote-approval-pieces-list"></div>
+                </div>
+
+                <div id="quoteApprovalTotals" class="quote-approval-totals"></div>
+
+                <label for="quoteApprovalResumen">Resumen aprobado / pendiente</label>
+                <textarea id="quoteApprovalResumen" rows="3" placeholder="Ej: cliente aprueba mano de obra y filtro, pendiente bomba de agua."></textarea>
+
+                <label for="quoteApprovalClientNote">Observación comercial</label>
+                <textarea id="quoteApprovalClientNote" rows="3" placeholder="Nota interna o respuesta del cliente."></textarea>
+
+                <div id="quoteApprovalAmpliacionBlock" class="hidden">
+                  <label for="quoteApprovalAmpliacionDetalle">Detalle de ampliación requerida</label>
+                  <textarea id="quoteApprovalAmpliacionDetalle" rows="4" placeholder="Describe el trabajo adicional, repuestos o cambios detectados después del diagnóstico o desmontaje."></textarea>
+                </div>
+              </div>
+              <div class="app-modal-footer">
+                <button type="button" class="btn-secondary" data-action="shell-close-quote-approval">Cancelar</button>
+                <button type="button" class="btn-primary" data-action="shell-apply-quote-approval">Aplicar respuesta comercial</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+        <nav class="app-mobile-dock" aria-label="Navegacion rapida movil">
+          <button class="tab-button app-mobile-dock-button active" data-main-tab-target="dashboard" data-action="shell-open-tab" data-tab="dashboard">
+            <span class="app-mobile-dock-icon" aria-hidden="true">📊</span>
+            <span class="app-mobile-dock-label">Inicio</span>
+          </button>
+          <button class="tab-button app-mobile-dock-button" data-main-tab-target="cotStepCliente" data-action="shell-open-tab" data-tab="cotStepCliente">
+            <span class="app-mobile-dock-icon" aria-hidden="true">👥</span>
+            <span class="app-mobile-dock-label">Expediente</span>
+          </button>
+          <button class="tab-button app-mobile-dock-button" data-main-tab-target="facturacion" data-action="shell-open-tab" data-tab="facturacion">
+            <span class="app-mobile-dock-icon" aria-hidden="true">🧾</span>
+            <span class="app-mobile-dock-label">Cobros</span>
+          </button>
+          <button class="tab-button app-mobile-dock-button" data-main-tab-target="gestionYCatalogos" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">
+            <span class="app-mobile-dock-icon" aria-hidden="true">📁</span>
+            <span class="app-mobile-dock-label">Gestion</span>
+          </button>
+        </nav>
+    </div>
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/core/app-utils.js"></script>
+    <script src="assets/js/core/app-storage.js"></script>
+    <script src="assets/js/core/app-actions.js"></script>
+    <script src="assets/js/core/app-shell.js"></script>
+    <script src="assets/js/modules/shell-module.js"></script>
+    <script src="assets/js/modules/clientes-module.js"></script>
+    <script src="assets/js/modules/diagnostico-module.js"></script>
+    <script src="assets/js/modules/entrada-module.js"></script>
+    <script src="assets/js/modules/cotizacion-module.js"></script>
+    <script src="assets/js/modules/seguimiento-module.js"></script>
+    <script src="assets/js/modules/salida-module.js"></script>
+    <script src="assets/js/modules/facturacion-module.js"></script>
+    <script src="assets/js/modules/configuracion-module.js"></script>
+    <script src="assets/js/modules/gestion-module.js"></script>
+      </body>
+    </html>

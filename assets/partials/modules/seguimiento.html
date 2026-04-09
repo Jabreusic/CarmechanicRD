@@ -1,0 +1,132 @@
+<div class="module-panel module-v2-shell">
+  <div class="module-panel-header module-v2-header">
+    <div>
+      <p class="module-kicker">Módulo operativo</p>
+      <h2>📊 Seguimiento</h2>
+      <p class="text-tip">Separa el eje operativo del comercial y del cobro para evitar entregas o facturación fuera de secuencia.</p>
+    </div>
+    <span class="module-status-pill is-pending" data-module-status-pill="cotStepSeguimiento">Pendiente</span>
+  </div>
+
+  <section class="module-v2-hero">
+    <div>
+      <p class="module-kicker">Timeline operativo</p>
+      <h3>Controla avance, calidad y próxima acción desde una sola lectura</h3>
+      <p class="text-tip">Seguimiento separa el estado del trabajo, la ejecución técnica y el control previo a entrega.</p>
+    </div>
+    <div class="module-v2-hero-actions">
+      <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepSalida"]'>Ir a Salida</button>
+    </div>
+  </section>
+
+  <section class="entry-selector-panel" data-workflow-selector>
+    <div class="client-form-card-header">
+      <div>
+        <h3>Seleccionar Expediente / Visita</h3>
+        <p class="text-tip">Abre una visita del taller para actualizar su avance operativo sin depender de una selección global.</p>
+      </div>
+    </div>
+
+    <div class="entry-selector-grid">
+      <div>
+        <label>Buscar Visita</label>
+        <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
+      </div>
+      <div>
+        <label>Expediente / OT</label>
+        <select data-workflow-visit-select>
+          <option value="">-- Selecciona una visita --</option>
+        </select>
+      </div>
+      <div>
+        <label>Acceso rápido</label>
+        <button type="button" class="btn-secondary" data-action-call="openTab" data-action-args='[null, "dashboard"]'>Abrir bandejas</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="module-v2-grid module-v2-grid-sidebar">
+    <div class="module-v2-stack">
+      <section class="module-v2-block seguimiento-timeline-block">
+        <div class="module-v2-inline-grid module-v2-inline-grid-2">
+          <div>
+            <label for="estatusTrabajo">Estado del Trabajo</label>
+            <select id="estatusTrabajo" data-change-call="handleSeguimientoStatusChange">
+              <option value="en_espera">⏳ En espera</option>
+              <option value="en_diagnostico">🧪 En diagnóstico</option>
+              <option value="pendiente_aprobacion">📝 Pendiente de aprobación</option>
+              <option value="en_proceso">🔧 En proceso</option>
+              <option value="listo_para_entrega">📦 Listo para entrega</option>
+              <option value="entregado">🚗 Entregado</option>
+            </select>
+          </div>
+          <div>
+            <label for="tecnicoResponsable">Técnico Responsable</label>
+            <input type="text" id="tecnicoResponsable" placeholder="Nombre del técnico principal o supervisor de la orden">
+          </div>
+          <div>
+            <label for="fechaEntregaEstimada">Fecha Estimada de Entrega</label>
+            <input type="date" id="fechaEntregaEstimada" />
+          </div>
+          <div>
+            <label for="fechaEntregaReal">Fecha Real de Entrega</label>
+            <input type="date" id="fechaEntregaReal" />
+          </div>
+        </div>
+
+        <label for="trabajoProceso">Notas del Técnico (Proceso)</label>
+        <textarea id="trabajoProceso" placeholder="Describa avances, problemas encontrados, etc..."></textarea>
+
+        <label for="trabajoRealizado">Trabajo Realizado (Resultado Final)</label>
+        <textarea id="trabajoRealizado" placeholder="Resultado final del trabajo, observaciones..."></textarea>
+      </section>
+
+      <section class="entry-form-card seguimiento-quality-card module-v2-block">
+    <div class="client-form-card-header">
+      <div>
+        <h3>Control de Calidad</h3>
+        <p class="text-tip">Debes completar esta validación antes de marcar el vehículo como listo para entrega.</p>
+      </div>
+    </div>
+
+    <div class="seguimiento-quality-grid">
+      <label class="seguimiento-quality-item"><input type="checkbox" class="seguimientoQualityItem" value="prueba_ruta"> Prueba de ruta realizada</label>
+      <label class="seguimiento-quality-item"><input type="checkbox" class="seguimientoQualityItem" value="sin_fugas"> Sin fugas ni fallas visibles</label>
+      <label class="seguimiento-quality-item"><input type="checkbox" class="seguimientoQualityItem" value="niveles_ok"> Niveles y ajustes verificados</label>
+      <label class="seguimiento-quality-item"><input type="checkbox" class="seguimientoQualityItem" value="sin_codigos"> Sin códigos o testigos críticos</label>
+    </div>
+
+    <div class="seguimiento-quality-fields">
+      <div>
+        <label for="calidadValidadoPor">Validado por</label>
+        <input type="text" id="calidadValidadoPor" placeholder="Nombre del técnico o supervisor">
+      </div>
+      <div>
+        <label for="calidadFecha">Fecha de control</label>
+        <input type="date" id="calidadFecha">
+      </div>
+    </div>
+
+    <label for="calidadObservaciones">Observaciones de control</label>
+    <textarea id="calidadObservaciones" rows="3" placeholder="Resultado de la validación final, pendientes menores o notas del supervisor..."></textarea>
+
+    <p id="seguimientoQualityStatus" class="text-tip">Control de calidad pendiente.</p>
+  </section>
+    </div>
+
+    <aside class="module-v2-rail module-v2-stack">
+      <section class="module-v2-block is-accent">
+        <p class="module-kicker">Próxima acción sugerida</p>
+        <h4>Prepara la entrega solo cuando calidad y cobro estén resueltos</h4>
+        <p class="text-tip">Este panel funciona como recordatorio visual de que el seguimiento no cierra el expediente por sí solo.</p>
+      </section>
+    </aside>
+  </section>
+
+  <div class="button-group module-v2-actionbar">
+    <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepServicio"]'>Abrir módulo Cotización</button>
+    <button type="button" class="btn-success" data-action-call="guardarCotizacion">💾 Guardar Todo</button>
+    <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepSalida"]'>Abrir módulo Salida</button>
+  </div>
+</div>

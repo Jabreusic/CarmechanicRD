@@ -1,0 +1,36 @@
+<div id="diagnosticSummaryModal" class="app-modal hidden" data-action-call="handleDiagnosticModalBackdrop" data-action-include-event="true" data-action-args='["diagnosticSummaryModal"]'>
+  <div class="app-modal-dialog app-modal-dialog-xl">
+    <div class="app-modal-header">
+      <div>
+        <p class="modal-kicker">Vista para cliente</p>
+        <h3>Hallazgos del Diagnóstico</h3>
+      </div>
+      <button type="button" class="modal-close-btn" data-action-call="closeDiagnosticSummaryModal">✕</button>
+    </div>
+
+    <div class="app-modal-body">
+      <div id="diagnosticVehicleSignal" class="diagnostic-vehicle-signal"></div>
+      <div id="diagnosticSummaryContent" class="diagnostic-summary-grid"></div>
+
+      <div class="diagnostic-signature-panel">
+        <div class="diagnostic-signature-header">
+          <div>
+            <h4>Firma del Cliente</h4>
+            <p class="text-tip">El cliente puede firmar aquí para confirmar que visualizó los hallazgos.</p>
+          </div>
+          <span id="diagnosticSignatureStatus" class="diagnostic-signature-status">Sin firma guardada</span>
+        </div>
+        <canvas id="diagnosticSignatureCanvas" class="diagnostic-signature-canvas" width="860" height="220"></canvas>
+        <div class="diagnostic-signature-actions">
+          <button type="button" class="btn-secondary" data-action-call="clearDiagnosticSignature">Limpiar Firma</button>
+          <button type="button" class="btn-primary" data-action-call="saveDiagnosticSignature">Guardar Firma</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-modal-footer">
+      <button type="button" class="btn-primary" data-action-call="imprimirDiagnosticoPDF">🧾 Generar PDF Diagnóstico</button>
+      <button type="button" class="btn-secondary" data-action-call="closeDiagnosticSummaryModal">Cerrar</button>
+    </div>
+  </div>
+</div>
