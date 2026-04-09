@@ -4733,9 +4733,9 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .section, .tab-content { padding: 16px; }
   .app-mobile-workflow-strip {
     display: grid;
-    position: sticky;
-    top: 10px;
-    z-index: 30;
+    position: static;
+    top: auto;
+    z-index: auto;
   }
   .app-mobile-dock {
     display: grid;
@@ -4878,23 +4878,24 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     align-items: flex-start;
   }
   .module-tab-content {
-    padding-bottom: 122px;
+    padding-bottom: 24px;
   }
   .module-v2-actionbar {
-    position: fixed;
-    left: 10px;
-    right: 10px;
-    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-    z-index: 95;
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(140px, 1fr);
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px;
-    border-radius: 22px;
-    background: rgba(255,255,255,0.96);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+    grid-auto-flow: row;
+    grid-auto-columns: 1fr;
+    gap: 10px;
+    overflow: visible;
+    padding: 0;
+    margin-top: 18px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .module-v2-actionbar::-webkit-scrollbar { display: none; }
   .module-v2-actionbar button {
@@ -5005,7 +5006,6 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .app-modal-footer button { width: 100%; }
   .print-info { flex-direction: column; }
   .print-info div { padding: 0; min-width: 100%; margin-bottom: 15px; }
-  input, select, button, textarea { font-size: 0.95em; }
   .button-group { flex-direction: column; gap: 6px; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .dashboard-card-wide { grid-column: span 1; }
