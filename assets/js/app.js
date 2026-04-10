@@ -1747,7 +1747,10 @@ function normalizeServicioCotizacionState(data = {}) {
   const experiencia = String(data.experiencia ?? experienciaSelect.value ?? '1.0');
   experienciaSelect.value = Array.from(experienciaSelect.options).some(option => option.value === experiencia) ? experiencia : '1.0';
 
-  updateServicioDomicilioUI(data.domicilio || {});
+  const domicilioState = Object.prototype.hasOwnProperty.call(data, 'domicilio')
+    ? data.domicilio
+    : getServicioDomicilioPayload();
+  updateServicioDomicilioUI(domicilioState || {});
 }
 
 function getSelectedSalidaChecklist() {
