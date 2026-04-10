@@ -312,8 +312,22 @@ function isCommercialStatusInvoiceable(status = 'pendiente') {
   return normalizedStatus === 'aprobada' || normalizedStatus === 'aprobada_parcial';
 }
 
+const SERVICIO_DOMICILIO_MODES = ['km', 'zona'];
+const SERVICIO_DOMICILIO_ZONE_PRESETS = {
+  A: { label: 'Zona A', surcharge: 0 },
+  B: { label: 'Zona B', surcharge: 300 },
+  C: { label: 'Zona C', surcharge: 600 },
+  D: { label: 'Zona D', surcharge: 900 }
+};
+
+function toNonNegativeNumber(value, fallback = 0) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue >= 0 ? numericValue : fallback;
+}
+
 function getCurrentQuoteLaborSubtotal() {
   const subtotalGeneral = Number(document.getElementById('pSubtotal')?.textContent || 0);
+  const domicilioSubtotal = getQuoteDomicilioAmount();
   const piezasSubtotal = piezasActivas.reduce((sum, index) => {
     const cantidad = Number(document.getElementById(`piezaCantidad${index}`)?.value || 0);
     const costo = Number(document.getElementById(`piezaCosto${index}`)?.value || 0);
@@ -324,7 +338,221 @@ function getCurrentQuoteLaborSubtotal() {
     return sum + (cantidad * costo * margen);
   }, 0);
 
-  return Math.max(subtotalGeneral - piezasSubtotal, 0);
+  return Math.max(subtotalGeneral - piezasSubtotal - domicilioSubtotal, 0);
+}
+
+function normalizeServicioDomicilioState(data = {}) {
+  const enabled = data.enabled === true || String(data.enabled).toLowerCase() === 'true';
+  const description = String(data.description || data.descripcion || 'Servicio a domicilio').trim() || 'Servicio a domicilio';
+  const mode = SERVICIO_DOMICILIO_MODES.includes(data.mode) ? data.mode : 'km';
+  const legacyAmount = toNonNegativeNumber(data.amount ?? data.monto ?? 0, 0);
+  const zoneKey = Object.prototype.hasOwnProperty.call(SERVICIO_DOMICILIO_ZONE_PRESETS, data.zone)
+    ? data.zone
+    : 'A';
+  const zonePreset = SERVICIO_DOMICILIO_ZONE_PRESETS[zoneKey];
+
+  const normalized = {
+    enabled,
+    description,
+    mode,
+    kmBaseAmount: toNonNegativeNumber(data.kmBaseAmount ?? data.baseAmount ?? (mode === 'km' ? legacyAmount : 0), 0),
+    kmActual: toNonNegativeNumber(data.kmActual ?? data.kilometros ?? 0, 0),
+    kmOnlyOneWay: data.kmOnlyOneWay === true || String(data.kmOnlyOneWay).toLowerCase() === 'true' || data.soloIda === true || String(data.soloIda).toLowerCase() === 'true',
+    kmIncluded: toNonNegativeNumber(data.kmIncluded ?? data.kilometrosIncluidos ?? 0, 0),
+    kmRate: toNonNegativeNumber(data.kmRate ?? data.tarifaPorKm ?? 0, 0),
+    kmExtraSurcharge: toNonNegativeNumber(data.kmExtraSurcharge ?? data.recargoKm ?? data.extraSurcharge ?? 0, 0),
+    zoneBaseAmount: toNonNegativeNumber(data.zoneBaseAmount ?? data.baseZonaAmount ?? data.baseAmount ?? (mode === 'zona' ? legacyAmount : 0), 0),
+    zone: zoneKey,
+    zoneSurcharge: toNonNegativeNumber(data.zoneSurcharge ?? data.recargoZona ?? zonePreset.surcharge ?? 0, zonePreset.surcharge),
+    zoneExtraSurcharge: toNonNegativeNumber(data.zoneExtraSurcharge ?? data.recargoZonaExtra ?? data.extraSurcharge ?? 0, 0)
+  };
+
+  normalized.amount = calculateServicioDomicilioAmount(normalized);
+
+  return normalized;
+}
+
+function calculateServicioDomicilioAmount(data = {}) {
+  const domicilio = data.amount !== undefined && data.kmBaseAmount !== undefined
+    ? data
+    : normalizeServicioDomicilioState(data);
+
+  if (!domicilio.enabled) {
+    return 0;
+  }
+
+  if (domicilio.mode === 'zona') {
+    return domicilio.zoneBaseAmount + domicilio.zoneSurcharge + domicilio.zoneExtraSurcharge;
+  }
+
+  const totalTripKm = domicilio.kmActual * (domicilio.kmOnlyOneWay ? 1 : 2);
+  const extraKm = Math.max(totalTripKm - domicilio.kmIncluded, 0);
+  return domicilio.kmBaseAmount + (extraKm * domicilio.kmRate) + domicilio.kmExtraSurcharge;
+}
+
+function formatServicioDomicilioConcept(domicilioData = {}) {
+  const domicilio = normalizeServicioDomicilioState(domicilioData);
+  if (domicilio.mode === 'zona') {
+    const zoneLabel = SERVICIO_DOMICILIO_ZONE_PRESETS[domicilio.zone]?.label || `Zona ${domicilio.zone}`;
+    return `${domicilio.description} · ${zoneLabel}`;
+  }
+
+  if (domicilio.kmActual > 0) {
+    const totalKm = domicilio.kmActual * (domicilio.kmOnlyOneWay ? 1 : 2);
+    return domicilio.kmOnlyOneWay
+      ? `${domicilio.description} · ${domicilio.kmActual} km solo ida`
+      : `${domicilio.description} · ${domicilio.kmActual} km ida / ${totalKm} km total`;
+  }
+
+  return domicilio.description;
+}
+
+function getServicioDomicilioPayload() {
+  return normalizeServicioDomicilioState({
+    enabled: document.getElementById('toggleServicioDomicilioBtn')?.dataset.enabled === 'true',
+    description: document.getElementById('servicioDomicilioDescripcion')?.value || 'Servicio a domicilio',
+    mode: document.getElementById('servicioDomicilioModo')?.value || 'km',
+    kmBaseAmount: document.getElementById('servicioDomicilioKmBase')?.value || 0,
+    kmActual: document.getElementById('servicioDomicilioKmRecorrido')?.value || 0,
+    kmOnlyOneWay: document.getElementById('servicioDomicilioSoloIda')?.checked === true,
+    kmIncluded: document.getElementById('servicioDomicilioKmIncluidos')?.value || 0,
+    kmRate: document.getElementById('servicioDomicilioTarifaKm')?.value || 0,
+    kmExtraSurcharge: document.getElementById('servicioDomicilioRecargoKm')?.value || 0,
+    zoneBaseAmount: document.getElementById('servicioDomicilioZonaBase')?.value || 0,
+    zone: document.getElementById('servicioDomicilioZona')?.value || 'A',
+    zoneSurcharge: document.getElementById('servicioDomicilioRecargoZona')?.value || 0,
+    zoneExtraSurcharge: document.getElementById('servicioDomicilioRecargoZonaExtra')?.value || 0
+  });
+}
+
+function updateServicioDomicilioUI(data = {}) {
+  const domicilio = normalizeServicioDomicilioState(data);
+  const toggleButton = document.getElementById('toggleServicioDomicilioBtn');
+  const fields = document.getElementById('servicioDomicilioFields');
+  const descriptionInput = document.getElementById('servicioDomicilioDescripcion');
+  const modeSelect = document.getElementById('servicioDomicilioModo');
+  const kmFields = document.getElementById('servicioDomicilioKmFields');
+  const zoneFields = document.getElementById('servicioDomicilioZonaFields');
+  const amountInput = document.getElementById('servicioDomicilioMonto');
+  const kmBaseInput = document.getElementById('servicioDomicilioKmBase');
+  const kmActualInput = document.getElementById('servicioDomicilioKmRecorrido');
+  const kmOnlyOneWayInput = document.getElementById('servicioDomicilioSoloIda');
+  const kmIncludedInput = document.getElementById('servicioDomicilioKmIncluidos');
+  const kmRateInput = document.getElementById('servicioDomicilioTarifaKm');
+  const kmExtraInput = document.getElementById('servicioDomicilioRecargoKm');
+  const zoneBaseInput = document.getElementById('servicioDomicilioZonaBase');
+  const zoneSelect = document.getElementById('servicioDomicilioZona');
+  const zoneSurchargeInput = document.getElementById('servicioDomicilioRecargoZona');
+  const zoneExtraInput = document.getElementById('servicioDomicilioRecargoZonaExtra');
+
+  if (!toggleButton || !fields || !descriptionInput || !modeSelect || !kmFields || !zoneFields || !amountInput) {
+    return domicilio;
+  }
+
+  toggleButton.dataset.enabled = domicilio.enabled ? 'true' : 'false';
+  toggleButton.classList.toggle('is-active', domicilio.enabled);
+  toggleButton.setAttribute('aria-pressed', domicilio.enabled ? 'true' : 'false');
+  toggleButton.textContent = domicilio.enabled ? 'Domicilio activado' : 'Domicilio desactivado';
+
+  fields.classList.toggle('is-disabled', !domicilio.enabled);
+  fields.setAttribute('aria-hidden', domicilio.enabled ? 'false' : 'true');
+  descriptionInput.disabled = !domicilio.enabled;
+  modeSelect.disabled = !domicilio.enabled;
+  amountInput.disabled = !domicilio.enabled;
+
+  kmFields.classList.toggle('hidden', domicilio.mode !== 'km');
+  zoneFields.classList.toggle('hidden', domicilio.mode !== 'zona');
+
+  descriptionInput.value = domicilio.description;
+  modeSelect.value = domicilio.mode;
+  amountInput.value = domicilio.amount.toFixed(2).replace(/\.00$/, '');
+
+  if (kmBaseInput) {
+    kmBaseInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmBaseInput.value = domicilio.kmBaseAmount.toFixed(2).replace(/\.00$/, '');
+  }
+  if (kmActualInput) {
+    kmActualInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmActualInput.value = domicilio.kmActual.toFixed(1).replace(/\.0$/, '');
+  }
+  if (kmOnlyOneWayInput) {
+    kmOnlyOneWayInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmOnlyOneWayInput.checked = domicilio.kmOnlyOneWay;
+  }
+  if (kmIncludedInput) {
+    kmIncludedInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmIncludedInput.value = domicilio.kmIncluded.toFixed(1).replace(/\.0$/, '');
+  }
+  if (kmRateInput) {
+    kmRateInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmRateInput.value = domicilio.kmRate.toFixed(2).replace(/\.00$/, '');
+  }
+  if (kmExtraInput) {
+    kmExtraInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
+    kmExtraInput.value = domicilio.kmExtraSurcharge.toFixed(2).replace(/\.00$/, '');
+  }
+  if (zoneBaseInput) {
+    zoneBaseInput.disabled = !domicilio.enabled || domicilio.mode !== 'zona';
+    zoneBaseInput.value = domicilio.zoneBaseAmount.toFixed(2).replace(/\.00$/, '');
+  }
+  if (zoneSelect) {
+    zoneSelect.disabled = !domicilio.enabled || domicilio.mode !== 'zona';
+    zoneSelect.value = domicilio.zone;
+  }
+  if (zoneSurchargeInput) {
+    zoneSurchargeInput.disabled = !domicilio.enabled || domicilio.mode !== 'zona';
+    zoneSurchargeInput.value = domicilio.zoneSurcharge.toFixed(2).replace(/\.00$/, '');
+  }
+  if (zoneExtraInput) {
+    zoneExtraInput.disabled = !domicilio.enabled || domicilio.mode !== 'zona';
+    zoneExtraInput.value = domicilio.zoneExtraSurcharge.toFixed(2).replace(/\.00$/, '');
+  }
+
+  return domicilio;
+}
+
+function toggleServicioDomicilio() {
+  const currentState = getServicioDomicilioPayload();
+  updateServicioDomicilioUI({
+    ...currentState,
+    enabled: !currentState.enabled
+  });
+  scheduleModuleDraftSave();
+  updateModuleCompletionIndicators();
+}
+
+function syncServicioDomicilioMode() {
+  updateServicioDomicilioUI(getServicioDomicilioPayload());
+  scheduleModuleDraftSave();
+  updateModuleCompletionIndicators();
+}
+
+function handleServicioDomicilioZonaChange() {
+  const currentState = getServicioDomicilioPayload();
+  const selectedZone = document.getElementById('servicioDomicilioZona')?.value || 'A';
+  const zonePreset = SERVICIO_DOMICILIO_ZONE_PRESETS[selectedZone] || SERVICIO_DOMICILIO_ZONE_PRESETS.A;
+  updateServicioDomicilioUI({
+    ...currentState,
+    zone: selectedZone,
+    zoneSurcharge: zonePreset.surcharge
+  });
+  scheduleModuleDraftSave();
+  updateModuleCompletionIndicators();
+}
+
+function refreshServicioDomicilioCalculation() {
+  updateServicioDomicilioUI(getServicioDomicilioPayload());
+  updateModuleCompletionIndicators();
+}
+
+function getQuoteDomicilioAmount(source = null) {
+  if (source && typeof source === 'object') {
+    const domicilio = normalizeServicioDomicilioState(source);
+    return domicilio.enabled ? domicilio.amount : 0;
+  }
+
+  const domicilio = getServicioDomicilioPayload();
+  return domicilio.enabled ? domicilio.amount : 0;
 }
 
 function getCurrentQuotePiecesSnapshot() {
@@ -380,6 +608,7 @@ function getCotizacionApprovedTotals(cotizacion = null) {
   const subtotalGeneral = Number(source.subtotal ?? (document.getElementById('pSubtotal')?.textContent || 0));
   const totalGeneral = Number(source.totalFinal ?? (document.getElementById('pTotal')?.textContent || 0));
   const itbisGeneral = Number(source.itbis ?? (document.getElementById('pItbis')?.textContent || 0));
+  const domicilioSubtotal = getQuoteDomicilioAmount(source.servicio?.domicilio || null);
   const commercialStatus = normalizeCommercialStatus(source.status || currentCotizacionApprovalConfig?.tipoAprobacion || 'pendiente');
   const approval = normalizeCotizacionApprovalConfig(source.approval || currentCotizacionApprovalConfig || {}, piezas, commercialStatus);
 
@@ -388,7 +617,8 @@ function getCotizacionApprovedTotals(cotizacion = null) {
       subtotal: subtotalGeneral,
       itbis: itbisGeneral,
       totalFinal: totalGeneral,
-      manoObraSubtotal: Math.max(subtotalGeneral - piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0), 0),
+      manoObraSubtotal: Math.max(subtotalGeneral - piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) - domicilioSubtotal, 0),
+      domicilioSubtotal,
       piezasAprobadas: piezas,
       laborApproved: true,
       isPartial: false
@@ -398,15 +628,16 @@ function getCotizacionApprovedTotals(cotizacion = null) {
   const piezasAprobadas = piezas.filter((pieza, index) => approval.piezasAprobadas.includes(Number(pieza.index ?? index)));
   const subtotalPiezas = piezasAprobadas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0);
   const manoObraSubtotal = cotizacion
-    ? Math.max(subtotalGeneral - (Array.isArray(source.piezas) ? source.piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) : subtotalPiezas), 0)
+    ? Math.max(subtotalGeneral - (Array.isArray(source.piezas) ? source.piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) : subtotalPiezas) - domicilioSubtotal, 0)
     : getCurrentQuoteLaborSubtotal();
-  const subtotal = (approval.manoObraAprobada ? manoObraSubtotal : 0) + subtotalPiezas;
+  const subtotal = (approval.manoObraAprobada ? manoObraSubtotal + domicilioSubtotal : 0) + subtotalPiezas;
   const itbis = subtotalGeneral > 0 ? (subtotal * (itbisGeneral / subtotalGeneral)) : 0;
   return {
     subtotal,
     itbis,
     totalFinal: subtotal + itbis,
     manoObraSubtotal,
+    domicilioSubtotal,
     piezasAprobadas,
     laborApproved: approval.manoObraAprobada,
     isPartial: commercialStatus === 'aprobada_parcial'
@@ -1513,6 +1744,8 @@ function normalizeServicioCotizacionState(data = {}) {
 
   const experiencia = String(data.experiencia ?? experienciaSelect.value ?? '1.0');
   experienciaSelect.value = Array.from(experienciaSelect.options).some(option => option.value === experiencia) ? experiencia : '1.0';
+
+  updateServicioDomicilioUI(data.domicilio || {});
 }
 
 function getSelectedSalidaChecklist() {
@@ -1571,6 +1804,7 @@ function hasActiveWorkflowData() {
   const horas = document.getElementById('horas')?.value || '2';
   const dificultad = document.getElementById('dificultad')?.value || '1.2';
   const experiencia = document.getElementById('experiencia')?.value || '1.0';
+  const domicilio = getServicioDomicilioPayload();
   const seguimientoStatus = document.getElementById('estatusTrabajo')?.value || 'en_espera';
   const trabajoProceso = document.getElementById('trabajoProceso')?.value.trim() || '';
   const trabajoRealizado = document.getElementById('trabajoRealizado')?.value.trim() || '';
@@ -1604,6 +1838,17 @@ function hasActiveWorkflowData() {
     || horas !== '2'
     || dificultad !== '1.2'
     || experiencia !== '1.0'
+    || domicilio.enabled
+    || domicilio.kmBaseAmount > 0
+    || domicilio.kmActual > 0
+    || domicilio.kmIncluded > 0
+    || domicilio.kmRate > 0
+    || domicilio.kmExtraSurcharge > 0
+    || domicilio.zoneBaseAmount > 0
+    || domicilio.zone !== 'A'
+    || domicilio.zoneSurcharge > 0
+    || domicilio.zoneExtraSurcharge > 0
+    || domicilio.description !== 'Servicio a domicilio'
     || piezasConDatos
     || seguimientoStatus !== 'en_espera'
     || trabajoProceso
@@ -1668,6 +1913,20 @@ function resetWorkflowModules(options = {}) {
   document.getElementById('horas').value = '2';
   document.getElementById('dificultad').value = '1.2';
   document.getElementById('experiencia').value = '1.0';
+  updateServicioDomicilioUI({
+    enabled: false,
+    description: 'Servicio a domicilio',
+    mode: 'km',
+    kmBaseAmount: 0,
+    kmActual: 0,
+    kmIncluded: 0,
+    kmRate: 0,
+    kmExtraSurcharge: 0,
+    zoneBaseAmount: 0,
+    zone: 'A',
+    zoneSurcharge: 0,
+    zoneExtraSurcharge: 0
+  });
 
   document.getElementById('selectPiezaCatalogoNuevaCotizacion').value = '';
   setCotizacionStatusUI('pendiente');
@@ -2332,17 +2591,19 @@ function setEntryChecklistControlState(control, value = '') {
 
   const normalizedValue = normalizeEntryChecklistValue(value);
   const stateMeta = normalizedValue === 'si'
-    ? { label: 'Sí', className: 'is-si', ariaSuffix: 'Sí' }
+    ? { label: '✓', className: 'is-si', ariaSuffix: 'Sí' }
     : normalizedValue === 'no'
-      ? { label: 'No', className: 'is-no', ariaSuffix: 'No' }
-      : { label: '—', className: 'is-empty', ariaSuffix: 'En blanco' };
+      ? { label: 'X', className: 'is-no', ariaSuffix: 'No' }
+      : { label: '', className: 'is-empty', ariaSuffix: 'En blanco' };
 
   control.dataset.checklistState = normalizedValue;
   control.textContent = stateMeta.label;
   control.classList.remove('is-si', 'is-no', 'is-empty');
   control.classList.add(stateMeta.className);
 
-  const rowLabel = control.closest('tr')?.querySelector('td')?.textContent?.trim() || 'Elemento';
+  const rowLabel = control.closest('.entry-checklist-item')?.querySelector('span')?.textContent?.trim()
+    || control.closest('tr')?.querySelector('td')?.textContent?.trim()
+    || 'Elemento';
   control.setAttribute('aria-label', `${rowLabel}: ${stateMeta.ariaSuffix}`);
 }
 
@@ -3503,11 +3764,12 @@ function generarHTMLImpresionOrdenEntrada(orden) {
     `;
   }).join('');
   const checklistCompactHtml = checklistRows.map(row => {
-    const isChecked = Boolean(row.value);
+    const symbol = row.value === 'si' ? '✓' : row.value === 'no' ? 'X' : '';
+    const stateClass = row.value === 'si' ? 'is-si' : row.value === 'no' ? 'is-no' : 'is-empty';
     return `
       <article class="entry-print-check-card">
         <span class="entry-print-check-label">${escapeHtml(row.label)}</span>
-        <span class="entry-print-check-box ${isChecked ? 'is-checked' : ''}">${isChecked ? 'X' : ''}</span>
+        <span class="entry-print-check-box ${stateClass}">${symbol}</span>
       </article>
     `;
   }).join('');
@@ -3539,7 +3801,9 @@ function generarHTMLImpresionOrdenEntrada(orden) {
     .entry-print-check-card { display: grid; grid-template-columns: minmax(0, 1fr) 16px; gap: 5px; align-items: center; border: none; border-radius: 0; padding: 1px 0; background: transparent; min-width: 0; }
     .entry-print-check-label { display: block; font-size: 0.69rem; font-weight: 700; color: var(--print-primary); line-height: 1.05; word-break: break-word; }
     .entry-print-check-box { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--print-primary); border-radius: 2px; background: #fff; font-size: 0.64rem; font-weight: 800; color: var(--print-primary); }
-    .entry-print-check-box.is-checked { background: #e2e8f0; }
+    .entry-print-check-box.is-si { background: #e2e8f0; }
+    .entry-print-check-box.is-no { background: #fff; }
+    .entry-print-check-box.is-empty { color: transparent; }
     .entry-print-bottom-grid { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px; align-items: start; }
     .entry-print-terms { margin: 0; padding-left: 16px; font-size: 0.72rem; line-height: 1.24; columns: 2; column-gap: 18px; }
     .entry-print-terms li { margin-bottom: 3px; }
@@ -4642,7 +4906,8 @@ function buildModuleDraftPayload() {
       servicioCatalogo: document.getElementById('selectServicioCatalogoNuevaCotizacion')?.value || '',
       horas: document.getElementById('horas')?.value || '2',
       dificultad: document.getElementById('dificultad')?.value || '1.2',
-      experiencia: document.getElementById('experiencia')?.value || '1.0'
+      experiencia: document.getElementById('experiencia')?.value || '1.0',
+      domicilio: getServicioDomicilioPayload()
     },
     piezas: {
       piezaCatalogo: document.getElementById('selectPiezaCatalogoNuevaCotizacion')?.value || '',
@@ -7658,6 +7923,8 @@ function calcularTotal() {
   const horas = parseFloat(document.getElementById('horas').value);
   const dificultadVal = parseFloat(document.getElementById('dificultad').value);
   const experienciaVal = parseFloat(document.getElementById('experiencia').value);
+  const domicilioPayload = getServicioDomicilioPayload();
+  const domicilioMonto = domicilioPayload.enabled ? Number(domicilioPayload.amount || 0) : 0;
   const aplicarItbis = configuracionGeneral.aplicarItbis;
   const precioBaseHora = Number(configuracionGeneral.precioBaseHora) || DEFAULT_PRECIO_BASE_HORA;
   const itbisRate = (Number(configuracionGeneral.porcentajeItbis) || DEFAULT_ITBIS_PERCENT) / 100;
@@ -7711,7 +7978,17 @@ function calcularTotal() {
     return false;
   }
 
-  const subtotalGeneral = precioManoObra + totalPiezasVenta;
+  if (domicilioPayload.enabled && domicilioMonto > 0) {
+    const filaDomicilio = `<tr>
+      <td>${formatServicioDomicilioConcept(domicilioPayload)}</td>
+      <td>1</td>
+      <td>RD$ ${domicilioMonto.toFixed(2)}</td>
+      <td>RD$ ${domicilioMonto.toFixed(2)}</td>
+    </tr>`;
+    piezasPrintBody.insertAdjacentHTML('beforeend', filaDomicilio);
+  }
+
+  const subtotalGeneral = precioManoObra + domicilioMonto + totalPiezasVenta;
   let itbis = 0;
   let totalConItbis = subtotalGeneral;
 
@@ -7844,7 +8121,8 @@ function guardarCotizacion() {
       trabajo: document.getElementById('trabajo').value.trim(),
       horas: parseFloat(document.getElementById('horas').value),
       dificultad: parseFloat(document.getElementById('dificultad').value),
-      experiencia: parseFloat(document.getElementById('experiencia').value)
+      experiencia: parseFloat(document.getElementById('experiencia').value),
+      domicilio: getServicioDomicilioPayload()
     },
     ordenEntrada: getOrdenEntradaPayload(),
     diagnostico: diagnosticoPayload,
@@ -8931,6 +9209,9 @@ function convertirAFactura(cotizacionId) {
 
   const approvedTotals = getCotizacionApprovedTotals(cotizacion);
   const approvedPieces = approvedTotals.isPartial ? approvedTotals.piezasAprobadas : (Array.isArray(cotizacion.piezas) ? cotizacion.piezas : []);
+  const approvedDomicilio = approvedTotals.laborApproved
+    ? normalizeServicioDomicilioState(cotizacion.servicio?.domicilio || {})
+    : normalizeServicioDomicilioState({ enabled: false, amount: 0, description: cotizacion.servicio?.domicilio?.description || 'Servicio a domicilio' });
 
   const factura = {
     id: `FAC-${Date.now()}`,
@@ -8938,7 +9219,10 @@ function convertirAFactura(cotizacionId) {
     cotizacionId: cotizacion.id,
     cliente: { ...cotizacion.cliente },
     vehiculo: { ...cotizacion.vehiculo },
-    servicio: { ...cotizacion.servicio },
+    servicio: {
+      ...cotizacion.servicio,
+      domicilio: approvedDomicilio
+    },
     ordenEntrada: { ...(cotizacion.ordenEntrada || {}) },
     salida: { ...(cotizacion.salida || {}) },
     diagnostico: {
@@ -9029,15 +9313,24 @@ function prepararFacturaParaImpresion(factura) {
 
   const servicioRow = detalleFactura.insertRow();
   const servicioHoras = Number(factura.servicio.horas || 0);
+  const domicilio = normalizeServicioDomicilioState(factura.servicio?.domicilio || {});
   const totalPiezas = Array.isArray(factura.piezas)
     ? factura.piezas.reduce((total, pieza) => total + Number(pieza.subtotalPiezaVenta || 0), 0)
     : 0;
-  const totalServicio = Math.max(Number(factura.subtotal || 0) - totalPiezas, 0);
+  const totalServicio = Math.max(Number(factura.subtotal || 0) - totalPiezas - (domicilio.enabled ? domicilio.amount : 0), 0);
   const precioServicioUnitario = servicioHoras > 0 ? totalServicio / servicioHoras : totalServicio;
   servicioRow.insertCell().textContent = factura.servicio.trabajo || 'Mano de Obra';
   servicioRow.insertCell().textContent = servicioHoras || 0;
   servicioRow.insertCell().textContent = `RD$ ${precioServicioUnitario.toFixed(2)}`;
   servicioRow.insertCell().textContent = `RD$ ${totalServicio.toFixed(2)}`;
+
+  if (domicilio.enabled && domicilio.amount > 0) {
+    const domicilioRow = detalleFactura.insertRow();
+    domicilioRow.insertCell().textContent = formatServicioDomicilioConcept(domicilio);
+    domicilioRow.insertCell().textContent = 1;
+    domicilioRow.insertCell().textContent = `RD$ ${Number(domicilio.amount || 0).toFixed(2)}`;
+    domicilioRow.insertCell().textContent = `RD$ ${Number(domicilio.amount || 0).toFixed(2)}`;
+  }
 
   (factura.piezas || []).forEach(pieza => {
     const row = detalleFactura.insertRow();

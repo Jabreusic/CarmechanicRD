@@ -1551,6 +1551,89 @@ button:active {
   margin-top: 14px;
 }
 
+.quote-delivery-panel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.quote-delivery-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.quote-delivery-header h3 {
+  margin: 0 0 6px;
+}
+
+.quote-delivery-toggle {
+  min-width: 210px;
+  margin-top: 0;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #334155;
+  font-weight: 800;
+  box-shadow: var(--shadow-sm);
+}
+
+.quote-delivery-toggle.is-active {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #166534;
+}
+
+.quote-delivery-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.quote-delivery-fields.is-disabled {
+  opacity: 0.56;
+}
+
+.quote-delivery-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
+.quote-delivery-inline-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+}
+
+.quote-delivery-inline-check label {
+  margin: 0;
+}
+
+.quote-delivery-inline-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.quote-delivery-total {
+  grid-column: 1 / -1;
+}
+
+.quote-delivery-total input {
+  font-weight: 800;
+  background: #f8fafc;
+}
+
 .seguimiento-timeline-block {
   position: relative;
 }
@@ -4848,6 +4931,19 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .skip-link:focus {
     top: 10px;
     left: 10px;
+  }
+  .quote-delivery-header {
+    flex-direction: column;
+  }
+  .quote-delivery-toggle {
+    width: 100%;
+    min-width: 0;
+  }
+  .quote-delivery-fields {
+    grid-template-columns: 1fr;
+  }
+  .quote-delivery-mode-grid {
+    grid-template-columns: 1fr;
   }
   body { padding: 0 0 calc(104px + env(safe-area-inset-bottom, 0px)); }
   .app-header {

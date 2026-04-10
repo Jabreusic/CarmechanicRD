@@ -102,6 +102,82 @@
             <span class="error-message">Este campo es obligatorio.</span>
           </div>
         </div>
+
+        <div class="quote-delivery-panel">
+          <div class="quote-delivery-header">
+            <div>
+              <h3>Servicio a domicilio</h3>
+              <p class="text-tip">Activa este cargo cuando la visita incluya desplazamiento, chequeo o mantenimiento fuera del taller.</p>
+            </div>
+            <button type="button" id="toggleServicioDomicilioBtn" class="quote-delivery-toggle" data-action-call="toggleServicioDomicilio" aria-pressed="false">Domicilio desactivado</button>
+          </div>
+          <div id="servicioDomicilioFields" class="quote-delivery-fields is-disabled" aria-hidden="true">
+            <div>
+              <label for="servicioDomicilioDescripcion">Concepto</label>
+              <input type="text" id="servicioDomicilioDescripcion" value="Servicio a domicilio" placeholder="Ej: Diagnóstico a domicilio" disabled />
+            </div>
+            <div>
+              <label for="servicioDomicilioModo">Modo de cálculo</label>
+              <select id="servicioDomicilioModo" data-change-call="syncServicioDomicilioMode" disabled>
+                <option value="km">Por km</option>
+                <option value="zona">Por zona</option>
+              </select>
+            </div>
+            <div id="servicioDomicilioKmFields" class="quote-delivery-mode-grid">
+              <div>
+                <label for="servicioDomicilioKmBase">Tarifa base</label>
+                <input type="number" id="servicioDomicilioKmBase" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioKmRecorrido">Km ida</label>
+                <input type="number" id="servicioDomicilioKmRecorrido" min="0" step="0.1" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div class="quote-delivery-inline-check">
+                <label for="servicioDomicilioSoloIda">Cobrar solo ida</label>
+                <input type="checkbox" id="servicioDomicilioSoloIda" data-change-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioKmIncluidos">Km incluidos ida y vuelta</label>
+                <input type="number" id="servicioDomicilioKmIncluidos" min="0" step="0.1" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioTarifaKm">Tarifa por km extra</label>
+                <input type="number" id="servicioDomicilioTarifaKm" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioRecargoKm">Recargo adicional</label>
+                <input type="number" id="servicioDomicilioRecargoKm" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+            </div>
+            <div id="servicioDomicilioZonaFields" class="quote-delivery-mode-grid hidden">
+              <div>
+                <label for="servicioDomicilioZonaBase">Tarifa base</label>
+                <input type="number" id="servicioDomicilioZonaBase" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioZona">Zona</label>
+                <select id="servicioDomicilioZona" data-change-call="handleServicioDomicilioZonaChange" disabled>
+                  <option value="A">Zona A</option>
+                  <option value="B">Zona B</option>
+                  <option value="C">Zona C</option>
+                  <option value="D">Zona D</option>
+                </select>
+              </div>
+              <div>
+                <label for="servicioDomicilioRecargoZona">Recargo de zona</label>
+                <input type="number" id="servicioDomicilioRecargoZona" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+              <div>
+                <label for="servicioDomicilioRecargoZonaExtra">Recargo adicional</label>
+                <input type="number" id="servicioDomicilioRecargoZonaExtra" min="0" step="0.01" value="0" data-input-call="refreshServicioDomicilioCalculation" disabled />
+              </div>
+            </div>
+            <div class="quote-delivery-total">
+              <label for="servicioDomicilioMonto">Monto calculado</label>
+              <input type="number" id="servicioDomicilioMonto" min="0" step="0.01" value="0" readonly disabled />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="module-v2-block">
