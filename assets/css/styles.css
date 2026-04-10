@@ -1506,6 +1506,24 @@ button:active {
   backdrop-filter: blur(12px);
 }
 
+.quote-module-actionbar.module-v2-actionbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+}
+
+.quote-module-actionbar.module-v2-actionbar button {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 38px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  border-radius: 12px;
+}
+
 .active-workflow-progress-strip {
   display: grid;
   gap: 10px;
