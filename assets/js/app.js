@@ -3752,9 +3752,6 @@ function generarHTMLImpresionOrdenEntrada(orden) {
     : '';
   const damageDiagramSrc = escapeHtml(getEntryDiagramImageSrc());
   const activeWarningLights = new Set(Array.isArray(entrada.lucesTablero) ? entrada.lucesTablero : []);
-  const damageCoordinatesHtml = damageMarks.length
-    ? damageMarks.map((mark, index) => `<li><strong>M${index + 1}</strong> · X ${mark.x.toFixed(1)}% / Y ${mark.y.toFixed(1)}%</li>`).join('')
-    : '<li>Sin coordenadas registradas.</li>';
   const warningLightsHtml = ENTRY_WARNING_LIGHTS.map(light => {
     const iconSrc = new URL(`img/testigos/${light.file}`, window.location.href).href;
     const isActive = activeWarningLights.has(light.label);
@@ -3923,14 +3920,6 @@ function generarHTMLImpresionOrdenEntrada(orden) {
                 <div><span>Ingreso</span> <strong>${escapeHtml(entrada.modoLlegada || 'N/D')}</strong></div>
               </div>
             </aside>
-            ${damageMarks.length ? `
-              <aside class="entry-print-diagram-aside">
-                <h4>Coordenadas registradas</h4>
-                <ol>
-                  ${damageCoordinatesHtml}
-                </ol>
-              </aside>
-            ` : ''}
           </div>
         </div>
       </section>
@@ -8021,8 +8010,11 @@ function calcularTotal() {
   }
 
   document.getElementById('pTrabajo').textContent = document.getElementById('trabajo').value.trim();
-  document.getElementById('pVehiculoModelo').textContent = document.getElementById('vehiculoModelo').value.trim();
-  document.getElementById('pVehiculoAnio').textContent = document.getElementById('vehiculoAnio').value.trim();
+  document.getElementById('pVehiculoResumen').textContent = formatPrintableVehicleSummary(
+    document.getElementById('vehiculoModelo').value.trim(),
+    document.getElementById('vehiculoAnio').value.trim(),
+    'N/D'
+  );
   document.getElementById('pVehiculoCombustible').textContent = document.getElementById('vehiculoCombustible').value.trim();
   document.getElementById('pVehiculoChasis').textContent = document.getElementById('vehiculoChasis').value.trim();
   document.getElementById('pVehiculoPlaca').textContent = document.getElementById('vehiculoPlaca').value.trim();
@@ -8426,7 +8418,8 @@ function imprimirCotizacion() {
     documentTitle: 'Cotizacion de Servicio',
     subtitle: 'Resumen comercial para aprobacion del cliente.',
     meta: buildCotizacionPrintMeta(document.getElementById('pFechaPrintHeader')?.textContent || 'N/D'),
-    bodyHtml: tempDiv.innerHTML
+    bodyHtml: tempDiv.innerHTML,
+    extraStyles: buildAdaptivePrintCompactionStyles(tempDiv)
   });
 
   openPrintPreviewWindow({ title: 'Cotización de Servicio', html, width: 980, height: 760 });
@@ -8493,6 +8486,58 @@ function buildConfigurablePrintHtml({ windowTitle, kicker = 'CarsystemRD', docum
     '__PRINT_BODY_HTML__': composedBodyHtml,
     '__PRINT_FOOTER_HTML__': footerContent ? `<footer class="print-shell-footer">${escapeHtml(footerContent)}</footer>` : ''
   });
+}
+
+function buildAdaptivePrintCompactionStyles(root) {
+  if (!root) {
+    return '';
+  }
+
+  const tableRowCount = root.querySelectorAll('tbody tr').length;
+  const noteCount = root.querySelectorAll('.print-notes li').length;
+  const isCompact = tableRowCount >= 6 || noteCount >= 5;
+  const isDense = tableRowCount >= 10 || noteCount >= 7;
+
+  if (!isCompact) {
+    return '';
+  }
+
+  return `
+    .print-shell { padding: ${isDense ? '8px 10px 10px' : '10px 12px 12px'}; }
+    .print-shell-header { grid-template-columns: ${isDense ? '54px minmax(0, 1fr) 170px' : '60px minmax(0, 1fr) 184px'}; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; }
+    .print-shell-brand { min-height: 44px; }
+    .print-shell-brand img { max-width: ${isDense ? '46px' : '52px'}; max-height: ${isDense ? '46px' : '52px'}; }
+    .print-shell-kicker { margin-bottom: 1px; font-size: 0.54rem; }
+    .print-shell-copy h1 { font-size: ${isDense ? '1rem' : '1.08rem'}; }
+    .print-shell-copy h2 { font-size: ${isDense ? '0.76rem' : '0.8rem'}; }
+    .print-shell-copy p,
+    .print-shell-meta-row,
+    .print-shell-meta-row strong { font-size: ${isDense ? '0.68rem' : '0.72rem'}; line-height: 1.15; }
+    .print-shell-meta-row span { font-size: ${isDense ? '0.58rem' : '0.62rem'}; }
+    .print-info,
+    .print-info.print-entry-top-grid { gap: 8px; margin-bottom: 8px; }
+    .print-entry-card { padding: ${isDense ? '7px 9px' : '8px 10px'}; }
+    .print-entry-card h4 { margin: 2px 0 5px; font-size: ${isDense ? '0.82rem' : '0.88rem'}; }
+    .print-entry-card p { grid-template-columns: ${isDense ? '88px' : '96px'} minmax(0, 1fr); gap: 6px; margin: 0 0 3px; font-size: ${isDense ? '0.74rem' : '0.78rem'}; line-height: 1.14; }
+    .print-card-kicker { font-size: 0.58rem; }
+    .print-section-title { margin-top: 8px; margin-bottom: 6px; padding-bottom: 3px; font-size: ${isDense ? '0.9rem' : '0.96rem'}; }
+    table { margin-top: 6px; }
+    th, td { padding: ${isDense ? '4px 5px' : '4px 6px'}; font-size: ${isDense ? '0.68rem' : '0.72rem'}; line-height: 1.12; }
+    th:nth-child(2),
+    th:nth-child(3),
+    th:nth-child(4),
+    td:nth-child(2),
+    td:nth-child(3),
+    td:nth-child(4) { white-space: nowrap; }
+    .print-totals { margin-top: 10px; padding-top: 6px; }
+    .print-totals p { font-size: ${isDense ? '0.82rem' : '0.88rem'}; margin-bottom: 2px; }
+    .print-final-total { font-size: ${isDense ? '0.98rem' : '1.06rem'}; margin-top: 3px; }
+    .print-notes { margin-top: 8px; padding-top: 6px; }
+    .print-notes h3 { margin-bottom: 4px; font-size: ${isDense ? '0.78rem' : '0.84rem'}; }
+    .print-notes ul { padding-left: 16px; font-size: ${isDense ? '0.68rem' : '0.72rem'}; line-height: 1.22; }
+    .signature-block { margin-top: 8px; font-size: ${isDense ? '0.68rem' : '0.72rem'}; }
+    .signature-block p { margin-bottom: 12px; }
+  `;
 }
 
 function buildPrintableBodyClone(elementId, sectionsToRemove = []) {
@@ -8773,6 +8818,25 @@ function setPreviewText(root, id, value) {
   }
 }
 
+function formatPrintableVehicleSummary(modelo, anio, fallback = '') {
+  const cleanModelo = String(modelo || '').trim();
+  const cleanAnio = String(anio || '').trim();
+
+  if (cleanModelo && cleanAnio) {
+    return `${cleanModelo} (${cleanAnio})`;
+  }
+
+  if (cleanModelo) {
+    return cleanModelo;
+  }
+
+  if (cleanAnio) {
+    return cleanAnio;
+  }
+
+  return fallback;
+}
+
 function imprimirPlantillaHtmlPrueba() {
   if (shouldWarnForMissingPrintLogo()) {
     notifyMissingPrintLogo('La plantilla HTML de prueba');
@@ -8869,8 +8933,7 @@ function imprimirPruebaCotizacion() {
   setPreviewText(tempDiv, 'pIdentificacion', sample.cliente.identificacion);
   setPreviewText(tempDiv, 'pTelefonoCliente', sample.cliente.telefono);
   setPreviewText(tempDiv, 'pWhatsappCliente', sample.cliente.whatsapp);
-  setPreviewText(tempDiv, 'pVehiculoModelo', sample.vehiculo.modelo);
-  setPreviewText(tempDiv, 'pVehiculoAnio', sample.vehiculo.anio);
+  setPreviewText(tempDiv, 'pVehiculoResumen', formatPrintableVehicleSummary(sample.vehiculo.modelo, sample.vehiculo.anio, 'N/D'));
   setPreviewText(tempDiv, 'pVehiculoCombustible', sample.vehiculo.combustible);
   setPreviewText(tempDiv, 'pVehiculoChasis', sample.vehiculo.chasis);
   setPreviewText(tempDiv, 'pVehiculoPlaca', sample.vehiculo.placa);
@@ -8913,7 +8976,8 @@ function imprimirPruebaCotizacion() {
     documentTitle: 'Cotizacion de Servicio',
     subtitle: 'Previsualizacion con datos sintéticos y plantilla configurable.',
     meta: buildCotizacionPrintMeta(sample.fechaDisplay),
-    bodyHtml: tempDiv.innerHTML
+    bodyHtml: tempDiv.innerHTML,
+    extraStyles: buildAdaptivePrintCompactionStyles(tempDiv)
   });
 
   openPrintPreviewWindow({ title: 'Cotización de Prueba', html });
@@ -8939,8 +9003,7 @@ function imprimirPruebaFactura() {
   setPreviewText(tempDiv, 'fNombreCliente', sample.cliente.nombreCliente);
   setPreviewText(tempDiv, 'fIdentificacion', sample.cliente.identificacion);
   setPreviewText(tempDiv, 'fTelefono', sample.cliente.telefono);
-  setPreviewText(tempDiv, 'fVehiculoModelo', sample.vehiculo.modelo);
-  setPreviewText(tempDiv, 'fVehiculoAnio', sample.vehiculo.anio);
+  setPreviewText(tempDiv, 'fVehiculoResumen', formatPrintableVehicleSummary(sample.vehiculo.modelo, sample.vehiculo.anio, 'N/D'));
   setPreviewText(tempDiv, 'fVehiculoPlaca', sample.vehiculo.placa);
   setPreviewText(tempDiv, 'fVehiculoChasis', sample.vehiculo.chasis);
   setPreviewText(tempDiv, 'fSubtotal', sample.subtotal.toFixed(2));
@@ -9007,7 +9070,8 @@ function imprimirPruebaFactura() {
       documentTitle: 'Factura',
       subtitle: 'Previsualizacion comercial con plantilla configurable.',
       meta: buildFacturaPrintMeta(sample.factura),
-      bodyHtml: printableClone?.innerHTML || tempDiv.innerHTML
+      bodyHtml: printableClone?.innerHTML || tempDiv.innerHTML,
+      extraStyles: buildAdaptivePrintCompactionStyles(printableClone || tempDiv)
     })
   });
 }
@@ -9137,8 +9201,7 @@ function imprimirPruebaOrdenSalida() {
   setPreviewText(tempDiv, 'sNombreCliente', sample.cliente.nombreCliente);
   setPreviewText(tempDiv, 'sIdentificacion', sample.cliente.identificacion);
   setPreviewText(tempDiv, 'sTelefono', sample.cliente.telefono);
-  setPreviewText(tempDiv, 'sVehiculoModelo', sample.vehiculo.modelo);
-  setPreviewText(tempDiv, 'sVehiculoAnio', sample.vehiculo.anio);
+  setPreviewText(tempDiv, 'sVehiculoResumen', formatPrintableVehicleSummary(sample.vehiculo.modelo, sample.vehiculo.anio, 'N/D'));
   setPreviewText(tempDiv, 'sVehiculoPlaca', sample.vehiculo.placa);
   setPreviewText(tempDiv, 'sVehiculoChasis', sample.vehiculo.chasis);
   setPreviewText(tempDiv, 'sEstadoSalida', getSalidaEstadoLabel(sample.salida.estadoSalidaVehiculo));
@@ -9184,9 +9247,11 @@ function imprimirPruebaOrdenSalida() {
       documentTitle: 'Orden de Salida',
       subtitle: 'Previsualizacion operativa con plantilla configurable.',
       meta: buildSalidaPrintMeta(sample.salida),
-      bodyHtml: printableClone?.innerHTML || tempDiv.innerHTML
+      bodyHtml: printableClone?.innerHTML || tempDiv.innerHTML,
+      extraStyles: buildAdaptivePrintCompactionStyles(printableClone || tempDiv)
     })
   });
+
 }
 
 function convertirAFactura(cotizacionId) {
@@ -9299,8 +9364,11 @@ function prepararFacturaParaImpresion(factura) {
   document.getElementById('fNombreCliente').textContent = nombreCliente || '';
   document.getElementById('fIdentificacion').textContent = factura.cliente.identificacion || '';
   document.getElementById('fTelefono').textContent = factura.cliente.telefono || '';
-  document.getElementById('fVehiculoModelo').textContent = factura.vehiculo.modelo || '';
-  document.getElementById('fVehiculoAnio').textContent = factura.vehiculo.anio || '';
+  document.getElementById('fVehiculoResumen').textContent = formatPrintableVehicleSummary(
+    factura.vehiculo.modelo,
+    factura.vehiculo.anio,
+    'N/D'
+  );
   document.getElementById('fVehiculoPlaca').textContent = factura.vehiculo.placa || '';
   document.getElementById('fVehiculoChasis').textContent = factura.vehiculo.chasis || '';
 
@@ -9395,8 +9463,11 @@ function prepararOrdenSalidaParaImpresion() {
   document.getElementById('sNombreCliente').textContent = nombreCliente || 'N/D';
   document.getElementById('sIdentificacion').textContent = document.getElementById('identificacion').value.trim() || 'N/D';
   document.getElementById('sTelefono').textContent = document.getElementById('telefonoCliente').value.trim() || 'N/D';
-  document.getElementById('sVehiculoModelo').textContent = document.getElementById('vehiculoModelo').value.trim() || 'N/D';
-  document.getElementById('sVehiculoAnio').textContent = document.getElementById('vehiculoAnio').value.trim() || 'N/D';
+  document.getElementById('sVehiculoResumen').textContent = formatPrintableVehicleSummary(
+    document.getElementById('vehiculoModelo').value.trim(),
+    document.getElementById('vehiculoAnio').value.trim(),
+    'N/D'
+  );
   document.getElementById('sVehiculoPlaca').textContent = document.getElementById('vehiculoPlaca').value.trim() || 'N/D';
   document.getElementById('sVehiculoChasis').textContent = document.getElementById('vehiculoChasis').value.trim() || 'N/D';
   document.getElementById('sEstadoSalida').textContent = getSalidaEstadoLabel(salida.estadoSalidaVehiculo);
@@ -9457,7 +9528,8 @@ function imprimirOrdenSalida() {
     documentTitle: 'Orden de Salida',
     subtitle: 'Documento de entrega y conformidad del cliente.',
     meta: buildSalidaPrintMeta(salida),
-    bodyHtml: bodyClone.innerHTML
+    bodyHtml: bodyClone.innerHTML,
+    extraStyles: buildAdaptivePrintCompactionStyles(bodyClone)
   });
 
   openPrintPreviewWindow({ title: 'Orden de Salida', html, width: 980, height: 760 });
@@ -9486,7 +9558,8 @@ function imprimirFactura(idFactura) {
     documentTitle: 'Factura',
     subtitle: 'Comprobante de servicios y piezas facturados.',
     meta: buildFacturaPrintMeta(factura),
-    bodyHtml: bodyClone.innerHTML
+    bodyHtml: bodyClone.innerHTML,
+    extraStyles: buildAdaptivePrintCompactionStyles(bodyClone)
   });
 
   openPrintPreviewWindow({ title: `Factura ${factura.id}`, html, width: 980, height: 760 });

@@ -1510,18 +1510,26 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 10px;
+  scrollbar-width: none;
+}
+
+.quote-module-actionbar.module-v2-actionbar::-webkit-scrollbar {
+  display: none;
 }
 
 .quote-module-actionbar.module-v2-actionbar button {
   flex: 0 0 auto;
   min-width: 0;
-  min-height: 38px;
-  padding: 9px 12px;
-  font-size: 0.9rem;
-  border-radius: 12px;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
 .active-workflow-progress-strip {
