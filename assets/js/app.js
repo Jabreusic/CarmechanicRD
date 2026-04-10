@@ -373,9 +373,7 @@ function normalizeServicioDomicilioState(data = {}) {
 }
 
 function calculateServicioDomicilioAmount(data = {}) {
-  const domicilio = data.amount !== undefined && data.kmBaseAmount !== undefined
-    ? data
-    : normalizeServicioDomicilioState(data);
+  const domicilio = data && typeof data === 'object' ? data : {};
 
   if (!domicilio.enabled) {
     return 0;
@@ -437,6 +435,7 @@ function updateServicioDomicilioUI(data = {}) {
   const kmBaseInput = document.getElementById('servicioDomicilioKmBase');
   const kmActualInput = document.getElementById('servicioDomicilioKmRecorrido');
   const kmOnlyOneWayInput = document.getElementById('servicioDomicilioSoloIda');
+  const kmIncludedLabel = document.getElementById('servicioDomicilioKmIncluidosLabel');
   const kmIncludedInput = document.getElementById('servicioDomicilioKmIncluidos');
   const kmRateInput = document.getElementById('servicioDomicilioTarifaKm');
   const kmExtraInput = document.getElementById('servicioDomicilioRecargoKm');
@@ -478,6 +477,9 @@ function updateServicioDomicilioUI(data = {}) {
   if (kmOnlyOneWayInput) {
     kmOnlyOneWayInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';
     kmOnlyOneWayInput.checked = domicilio.kmOnlyOneWay;
+  }
+  if (kmIncludedLabel) {
+    kmIncludedLabel.textContent = domicilio.kmOnlyOneWay ? 'Km incluidos' : 'Km incluidos ida y vuelta';
   }
   if (kmIncludedInput) {
     kmIncludedInput.disabled = !domicilio.enabled || domicilio.mode !== 'km';

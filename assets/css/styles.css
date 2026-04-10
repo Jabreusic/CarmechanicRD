@@ -5165,8 +5165,7 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     bottom: auto;
     z-index: auto;
     display: grid;
-    grid-auto-flow: row;
-    grid-auto-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     overflow: visible;
     padding: 0;
@@ -5179,7 +5178,9 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .module-v2-actionbar button {
     width: 100%;
     margin-top: 0;
-    min-height: 50px;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
   }
   .quote-module-actionbar.module-v2-actionbar {
     position: static;
@@ -5187,8 +5188,7 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     right: auto;
     bottom: auto;
     z-index: auto;
-    grid-auto-flow: row;
-    grid-auto-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
     padding: 0;
     margin-top: 18px;
@@ -5202,14 +5202,16 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
     right: auto;
     bottom: auto;
     z-index: auto;
-    grid-auto-flow: row;
-    grid-auto-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
     padding: 0;
     margin-top: 18px;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
+  }
+  .module-v2-actionbar button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
   .client-form-grid,
   .client-hub-workspace,
