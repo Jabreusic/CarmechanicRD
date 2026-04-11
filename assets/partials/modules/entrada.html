@@ -8,19 +8,39 @@
     <span class="module-status-pill is-pending" data-module-status-pill="cotStepOrden">Pendiente</span>
   </div>
 
-  <section class="module-v2-hero">
-    <div>
-      <p class="module-kicker">Recepción del expediente</p>
-      <h3>Captura la llegada del vehículo por bloques claros y con lectura rápida</h3>
-      <p class="text-tip">La entrada ahora se organiza como un checklist operativo: contexto, recepción, testigos, inspección visual y firma.</p>
+  <section class="entry-pending-panel">
+    <div class="client-form-card-header">
+      <div>
+        <p class="module-kicker">Bandeja de recepción</p>
+        <h3>Clientes con vehículo registrado</h3>
+        <p id="entryPendingQueueMeta" class="text-tip">Desde aquí se inicia una nueva orden de entrada sin exponer el formulario completo hasta elegir el caso, incluso si el vehículo ya estuvo antes en el taller.</p>
+      </div>
+      <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Abrir Clientes y Vehículos</button>
     </div>
-    <div class="module-v2-hero-actions">
-      <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Abrir Clientes</button>
-      <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Ir a Diagnóstico</button>
+    <div id="entryPendingQueue" class="entry-pending-grid"></div>
+  </section>
+
+  <section id="entryActiveCasePanel" class="entry-active-case hidden">
+    <div class="entry-active-case-header">
+      <div>
+        <p class="entry-summary-kicker">Recepción activa</p>
+        <h3 id="entryActiveCaseTitle">Selecciona un cliente con vehículo para crear la OT</h3>
+        <p id="entryActiveCaseMeta" class="text-tip">La bandeja de recepción te mostrará clientes con vehículo para abrir una OT nueva o registrar un reingreso.</p>
+      </div>
+      <span id="entryActiveCaseStatus" class="badge badge-neutral">Nueva orden</span>
+    </div>
+    <div class="entry-active-case-body">
+      <p id="entryActiveCaseCopy" class="entry-active-case-copy">Completa la recepción inicial, la inspección física y la firma para registrar la nueva orden de entrada.</p>
+      <div class="entry-active-case-actions">
+        <button id="entryBackToQueueButton" type="button" class="btn-secondary">Volver a bandeja</button>
+        <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Ir a Diagnóstico</button>
+      </div>
     </div>
   </section>
 
-  <section class="entry-selector-panel" data-workflow-selector>
+  <div id="entryWorkspaceShell" class="hidden">
+
+  <section class="entry-selector-panel hidden" data-workflow-selector>
     <div class="client-form-card-header">
       <div>
         <h3>Seleccionar Expediente / Visita</h3>
@@ -28,7 +48,24 @@
       </div>
     </div>
 
+    <div class="workflow-lock-banner hidden" data-workflow-lock-banner>
+      <p class="text-tip" data-workflow-lock-message></p>
+      <button type="button" class="btn-secondary" data-action-call="liberarContextoOperativo">Liberar expediente para cambiar contexto</button>
+    </div>
+
     <div class="entry-selector-grid">
+      <div>
+        <label>Cliente</label>
+        <select data-workflow-client-select>
+          <option value="">-- Selecciona un cliente --</option>
+        </select>
+      </div>
+      <div>
+        <label>Vehículo</label>
+        <select data-workflow-vehicle-select>
+          <option value="">-- Selecciona un vehículo --</option>
+        </select>
+      </div>
       <div>
         <label for="entryVisitSearch">Buscar Visita</label>
         <input type="text" id="entryVisitSearch" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">
@@ -46,7 +83,7 @@
     </div>
   </section>
 
-  <section class="entry-summary-grid">
+  <section class="entry-summary-grid hidden">
     <article class="entry-summary-card">
       <p class="entry-summary-kicker">Cliente</p>
       <h3 id="ordenEntradaClienteNombre">Cliente no seleccionado</h3>
@@ -252,5 +289,6 @@
     <button type="button" class="btn-success" data-action-call="guardarOrdenEntrada">💾 Guardar Entrada</button>
     <button type="button" class="btn-secondary" data-action-call="openCotStep" data-action-args='[null, "cotStepCliente"]'>Abrir Clientes y Vehículos</button>
     <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepDiagnostico"]'>Abrir módulo Diagnóstico</button>
+  </div>
   </div>
 </div>

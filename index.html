@@ -247,9 +247,9 @@
       <div id="dashboard" class="tab-content active section dashboard-shell">
         <div class="dashboard-hero">
           <div>
-            <p class="module-kicker">Centro de control</p>
-            <h2>Dashboard Operativo</h2>
-            <p class="text-tip">Prioriza qué visita atender ahora, qué ya puede cobrarse y qué necesita intervención antes de entregar.</p>
+            <p class="module-kicker">Centro de operaciones</p>
+            <h2>Tablero por expediente</h2>
+            <p class="text-tip">Gestiona el flujo vigente del taller: recepción, diagnóstico, decisión comercial, cobro, entrega y postventa desde una sola vista.</p>
           </div>
           <div class="dashboard-hero-actions">
             <button type="button" class="btn-primary" data-action="shell-open-tab" data-tab="cotStepCliente">Crear expediente</button>
@@ -263,16 +263,20 @@
             <strong id="dashboardMobileVisitsCount">0</strong>
           </article>
           <article class="dashboard-mobile-quickcard">
-            <span>Cobro</span>
+            <span>Aprobación</span>
+            <strong id="dashboardMobilePendingApprovalCount">0</strong>
+          </article>
+          <article class="dashboard-mobile-quickcard">
+            <span>Facturar</span>
             <strong id="dashboardMobileReadyBillingCount">0</strong>
           </article>
           <article class="dashboard-mobile-quickcard">
-            <span>Entrega</span>
-            <strong id="dashboardMobileReadyDeliveryCount">0</strong>
+            <span>Saldo</span>
+            <strong id="dashboardMobilePendingCollectionTotal">RD$ 0.00</strong>
           </article>
           <article class="dashboard-mobile-quickcard is-accent">
-            <span>Alertas</span>
-            <strong id="dashboardMobileAlertsCount">0</strong>
+            <span>Postventa</span>
+            <strong id="dashboardMobilePostventaCount">0</strong>
           </article>
         </div>
 
@@ -283,19 +287,24 @@
             <p class="text-tip">Órdenes abiertas con trabajo pendiente o en progreso.</p>
           </article>
           <article class="dashboard-kpi-card">
+            <span class="dashboard-kpi-label">Esperando aprobación</span>
+            <strong id="dashboardPendingApprovalCount" class="dashboard-kpi-value">0</strong>
+            <p class="text-tip">Cotizaciones pendientes o en ampliación antes de seguir el flujo comercial.</p>
+          </article>
+          <article class="dashboard-kpi-card">
             <span class="dashboard-kpi-label">Listas para facturar</span>
             <strong id="dashboardReadyBillingCount" class="dashboard-kpi-value">0</strong>
             <p class="text-tip">Visitas comercialmente aprobadas y operativamente listas para cobro.</p>
-          </article>
-          <article class="dashboard-kpi-card">
-            <span class="dashboard-kpi-label">Listas para entregar</span>
-            <strong id="dashboardReadyDeliveryCount" class="dashboard-kpi-value">0</strong>
-            <p class="text-tip">Vehículos listos o entregados según el seguimiento.</p>
           </article>
           <article class="dashboard-kpi-card dashboard-kpi-card-accent">
             <span class="dashboard-kpi-label">Saldo pendiente total</span>
             <strong id="dashboardPendingCollectionTotal" class="dashboard-kpi-value">RD$ 0.00</strong>
             <p class="text-tip">Cobro acumulado todavía pendiente en facturas emitidas.</p>
+          </article>
+          <article class="dashboard-kpi-card">
+            <span class="dashboard-kpi-label">Postventa activa</span>
+            <strong id="dashboardPostventaCount" class="dashboard-kpi-value">0</strong>
+            <p class="text-tip">Garantías y mantenimientos programados que ya requieren seguimiento.</p>
           </article>
         </div>
 
@@ -304,7 +313,7 @@
         <div class="dashboard-grid dashboard-grid-v2">
           <div class="dashboard-card dashboard-card-wide dashboard-queue-board-card">
             <div class="dashboard-card-header-inline">
-              <h3>🗂️ Bandejas por Visita</h3>
+              <h3>🗂️ Bandejas por Expediente</h3>
               <button type="button" class="btn-secondary" data-action="shell-open-tab" data-tab="cotStepCliente">Abrir maestro</button>
             </div>
             <div class="dashboard-queue-board">
@@ -315,7 +324,7 @@
                 </ul>
               </section>
               <section class="dashboard-queue-column">
-                <h4>Cotización / Aprobación</h4>
+                <h4>Decisión comercial</h4>
                 <ul id="dashboardQueueCotizacionList">
                   <li>No hay expedientes esperando cotización.</li>
                 </ul>
@@ -327,7 +336,7 @@
                 </ul>
               </section>
               <section class="dashboard-queue-column">
-                <h4>Facturación / Cobro</h4>
+                <h4>Cobro / Cierre</h4>
                 <ul id="dashboardQueueCobroList">
                   <li>No hay facturas pendientes.</li>
                 </ul>
@@ -357,35 +366,47 @@
           </div>
 
           <div class="dashboard-card">
-            <h3>Clientes Recientes</h3>
-            <ul id="clientesRecientesList">
-              <li>No hay clientes recientes.</li>
+            <div class="dashboard-card-header-inline">
+              <h3>🛠️ Radar Operativo</h3>
+              <span id="dashboardOperationalCountBadge" class="dashboard-module-chip is-pending">0 activos</span>
+            </div>
+            <ul id="dashboardOperationalList" class="dashboard-summary-list">
+              <li>No hay expedientes activos.</li>
             </ul>
-            <button type="button" data-action="shell-open-tab" data-tab="cotStepCliente">Ver Todos los Clientes</button>
+            <button type="button" data-action="shell-open-tab" data-tab="cotStepOrden">Abrir recepción</button>
           </div>
 
           <div class="dashboard-card">
-            <h3>Cotizaciones Pendientes</h3>
-            <ul id="cotizacionesPendientesList">
-              <li>No hay cotizaciones pendientes.</li>
+            <div class="dashboard-card-header-inline">
+              <h3>💬 Pendientes de Aprobación</h3>
+              <span id="dashboardCommercialCountBadge" class="dashboard-module-chip is-pending">0 pendientes</span>
+            </div>
+            <ul id="dashboardCommercialList" class="dashboard-summary-list">
+              <li>No hay decisiones comerciales pendientes.</li>
             </ul>
-            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">Ver Historial de Cotizaciones</button>
+            <button type="button" data-action="shell-open-tab" data-tab="cotStepServicio">Abrir cotización</button>
           </div>
 
           <div class="dashboard-card">
-            <h3>Cotizaciones Aprobadas Recientes</h3>
-            <ul id="cotizacionesAprobadasList">
-              <li>No hay cotizaciones aprobadas.</li>
+            <div class="dashboard-card-header-inline">
+              <h3>🧾 Cobro y Entrega</h3>
+              <span id="dashboardCollectionCountBadge" class="dashboard-module-chip is-pending">0 acciones</span>
+            </div>
+            <ul id="dashboardCollectionList" class="dashboard-summary-list">
+              <li>No hay cobros ni cierres pendientes.</li>
             </ul>
-            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialCotizacionesTab">Ver Historial de Cotizaciones</button>
+            <button type="button" data-action="shell-open-tab" data-tab="facturacion">Ir a facturación</button>
           </div>
 
           <div class="dashboard-card">
-            <h3>🧾 Facturas Recientes</h3>
-            <ul id="facturasRecientesList">
-              <li>No hay facturas emitidas.</li>
+            <div class="dashboard-card-header-inline">
+              <h3>🛎️ Postventa y Garantías</h3>
+              <span id="dashboardPostventaCountBadge" class="dashboard-module-chip is-complete">Sin pendientes</span>
+            </div>
+            <ul id="dashboardPostventaList" class="dashboard-summary-list">
+              <li>No hay recordatorios activos.</li>
             </ul>
-            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="historialFacturasTab">Ver Todas las Facturas</button>
+            <button type="button" data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="postventaTab">Abrir postventa</button>
           </div>
         </div>
       </div>

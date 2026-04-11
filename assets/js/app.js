@@ -183,6 +183,8 @@ let currentLoadedClientId = null;
 let currentLoadedVehicleId = null;
 let currentLoadedEntryOrderId = null;
 let currentLoadedCotizacionId = null;
+let entryQueueMode = true;
+let diagnosticQueueMode = true;
 let diagnosticoPartes = {};
 let currentDiagnosticPartId = null;
 let diagnosticClientSignature = null;
@@ -205,6 +207,8 @@ let salidaSignatureHasStroke = false;
 let moduleStatusListenersReady = false;
 let moduleDraftSaveTimeout = null;
 let clienteWorkspaceMode = 'detail';
+let clienteWorkspaceSection = 'historial';
+let clienteWorkspacePreview = { type: 'cliente', id: '' };
 let appNoticeTimeout = null;
 let pendingDecisionResolver = null;
 let lastFocusedElementBeforeModal = null;
@@ -824,14 +828,31 @@ function normalizeFacturaRecord(factura) {
   const totalFinal = Number(facturaBase.totalFinal || 0);
   const totalPagado = Number((facturaBase.totalPagado ?? pagos.reduce((sum, pago) => sum + Number(pago.monto || 0), 0)) || 0);
   const saldoPendiente = Math.max(totalFinal - totalPagado, 0);
+  const cotizacionId = facturaBase.cotizacionId || '';
+  const ordenEntradaId = facturaBase.ordenEntradaId || facturaBase.ordenEntrada?.id || facturaBase.salida?.ordenEntradaId || facturaBase.diagnostico?.ordenEntradaId || '';
   const estadoCobro = saldoPendiente <= 0 && totalFinal > 0
     ? 'pagada'
     : totalPagado > 0
       ? 'abono'
       : 'pendiente_pago';
+  const association = buildDocumentAssociationMeta(facturaBase, {
+    clienteId: facturaBase.cliente?.clientId || facturaBase.clienteId || '',
+    clienteIdentificacion: facturaBase.cliente?.identificacion || facturaBase.clienteIdentificacion || '',
+    vehiculoId: facturaBase.vehiculo?.vehicleId || facturaBase.vehiculoId || '',
+    vehiculoChasis: facturaBase.vehiculo?.chasis || facturaBase.vehiculoChasis || '',
+    vehiculoPlaca: facturaBase.vehiculo?.placa || facturaBase.vehiculoPlaca || '',
+    ordenEntradaId,
+    cotizacionId
+  });
+  const diagnostico = facturaBase.diagnostico ? normalizeDiagnosticoRecord(facturaBase.diagnostico, { ordenEntradaId, cotizacionId }) : null;
+  const salida = facturaBase.salida ? normalizeSalidaRecord(facturaBase.salida, { ordenEntradaId, cotizacionId }) : null;
 
   return {
     ...facturaBase,
+    id: facturaBase.id || generarEntidadId('FAC'),
+    cotizacionId,
+    ordenEntradaId,
+    ...association,
     fecha: facturaBase.fecha || getCurrentDateISO(),
     subtotal: Number(facturaBase.subtotal || 0),
     itbis: Number(facturaBase.itbis || 0),
@@ -839,7 +860,11 @@ function normalizeFacturaRecord(factura) {
     pagos,
     totalPagado,
     saldoPendiente,
-    estadoCobro
+    estadoCobro,
+    diagnosticoId: diagnostico?.id || facturaBase.diagnosticoId || '',
+    salidaId: salida?.id || facturaBase.salidaId || '',
+    diagnostico,
+    salida
   };
 }
 
@@ -956,7 +981,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const todayIso = getCurrentDateISO();
   const [year, month, day] = todayIso.split('-');
-  document.getElementById('fecha').value = todayIso;
+  const fechaInput = document.getElementById('fecha');
+  if (fechaInput) {
+    fechaInput.value = todayIso;
+  }
   const fechaSalidaInput = document.getElementById('fechaSalida');
   if (fechaSalidaInput) {
     fechaSalidaInput.value = todayIso;
@@ -969,7 +997,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (calidadFechaInput) {
     calidadFechaInput.value = todayIso;
   }
-  document.getElementById('pFechaPrintHeader').textContent = `${day}/${month}/${year}`;
+  const printHeaderDate = document.getElementById('pFechaPrintHeader');
+  if (printHeaderDate) {
+    printHeaderDate.textContent = `${day}/${month}/${year}`;
+  }
 
   agregarPieza();
   initializeAppThemePreference();
@@ -1002,6 +1033,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadModulePartials() {
+  if (window.location.protocol === 'file:') {
+    const error = new Error('Los parciales HTML requieren un servidor local o remoto para cargarse.');
+    error.code = 'PARTIALS_REQUIRE_HTTP';
+    throw error;
+  }
+
   const containers = Array.from(document.querySelectorAll('[data-partial]'));
   await Promise.all(containers.map(async container => {
     const partialPath = container.dataset.partial;
@@ -1216,7 +1253,7 @@ function renderDiagnosticOverview() {
   const photoCount = Object.values(diagnosticoPartes).reduce((total, part) => total + ((part.fotos || []).length), 0);
   const reviewedCount = summary.counts.ok + summary.counts.atencion + summary.counts.critico;
   const completedSteps = [
-    Boolean(currentLoadedClientId && currentLoadedVehicleId),
+    hasSelectedClientAndVehicle(),
     isEntryDataReady(),
     Boolean(diagnostico.sintomasReportados || diagnostico.pruebasRealizadas || diagnostico.causaProbable || diagnostico.diagnosticoInicial),
     reviewedCount > 0,
@@ -1342,6 +1379,105 @@ function initDiagnosticWorkspace() {
 
   renderDiagnosticToolbarState();
   renderDiagnosticOverview();
+  renderDiagnosticChecklist();
+}
+
+function appendDiagnosticNote(fieldId, note) {
+  const field = document.getElementById(fieldId);
+  if (!field) {
+    return;
+  }
+
+  const nextValue = String(note || '').trim();
+  if (!nextValue) {
+    return;
+  }
+
+  const currentValue = (field.value || '').trim();
+  if (!currentValue) {
+    field.value = nextValue;
+  } else if (!currentValue.toLowerCase().includes(nextValue.toLowerCase())) {
+    field.value = `${currentValue}${currentValue.endsWith('.') ? '' : '.'} ${nextValue}`;
+  }
+
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  field.focus();
+}
+
+function copyEntryMotivoToDiagnostico() {
+  syncDiagnosticoFromEntrada(true);
+  renderDiagnosticModuleContext();
+  notifySuccess('Motivo copiado', 'Se llevó el motivo de entrada al campo de síntomas reportados.', { kicker: 'Diagnóstico' });
+}
+
+function getNextPendingDiagnosticPartId() {
+  const firstPending = DIAGNOSTIC_PARTS.find(part => {
+    const current = diagnosticoPartes[part.id] || {};
+    return current.estado === 'pendiente' && !current.hallazgo && !current.recomendacion;
+  });
+
+  if (firstPending) {
+    return firstPending.id;
+  }
+
+  return DIAGNOSTIC_PARTS.find(part => {
+    const current = diagnosticoPartes[part.id] || {};
+    return !current.hallazgo && !current.recomendacion;
+  })?.id || null;
+}
+
+function openNextPendingDiagnosticPart() {
+  const nextPartId = getNextPendingDiagnosticPartId();
+  if (!nextPartId) {
+    notifySuccess('Sistemas revisados', 'No hay sistemas pendientes; revisa el resumen o concluye el diagnóstico cuando estés listo.', { kicker: 'Diagnóstico' });
+    return;
+  }
+
+  openDiagnosticPartModal(nextPartId);
+}
+
+function focusDiagnosticTrabajo() {
+  const field = document.getElementById('trabajo');
+  if (!field) {
+    return;
+  }
+
+  field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  field.focus();
+}
+
+function getDiagnosticChecklistItems() {
+  const diagnostico = getDiagnosticoPayload();
+  const hasSymptoms = Boolean(diagnostico.sintomasReportados);
+  const hasTests = Boolean(diagnostico.pruebasRealizadas);
+  const hasCause = Boolean(diagnostico.causaProbable);
+  const hasSummary = Boolean(diagnostico.diagnosticoInicial);
+  const hasWork = Boolean(diagnostico.trabajo);
+  const reviewedParts = Object.values(diagnosticoPartes || {}).filter(part => part.estado !== 'pendiente' || part.hallazgo || part.recomendacion || (part.fotos && part.fotos.length)).length;
+
+  return [
+    { label: 'Escribe qué reporta el cliente', done: hasSymptoms },
+    { label: 'Anota qué revisaste', done: hasTests },
+    { label: 'Explica qué encontraste', done: hasCause },
+    { label: 'Marca por lo menos un sistema', done: reviewedParts > 0 },
+    { label: 'Deja un resumen corto', done: hasSummary },
+    { label: 'Indica el trabajo recomendado', done: hasWork }
+  ];
+}
+
+function renderDiagnosticChecklist() {
+  const list = document.getElementById('diagnosticChecklistList');
+  if (!list) {
+    return;
+  }
+
+  const items = getDiagnosticChecklistItems();
+  list.innerHTML = items.map(item => `
+    <li class="diagnostic-check-item ${item.done ? 'is-done' : 'is-pending'}">
+      <span class="diagnostic-check-icon" aria-hidden="true">${item.done ? 'OK' : '...'}</span>
+      <span>${escapeHtml(item.label)}</span>
+    </li>
+  `).join('');
 }
 
 function renderDiagnosticPartsGrid() {
@@ -1357,6 +1493,7 @@ function renderDiagnosticPartsGrid() {
     grid.innerHTML = '<article class="diagnostic-empty-state">No hay sistemas que coincidan con el filtro o la búsqueda actual.</article>';
     renderDiagnosticToolbarState();
     renderDiagnosticOverview();
+    renderDiagnosticChecklist();
     updateModuleCompletionIndicators();
     return;
   }
@@ -1367,18 +1504,18 @@ function renderDiagnosticPartsGrid() {
       ? `<img class="diagnostic-card-photo" src="${current.fotos[0]}" alt="Foto de ${current.nombre}">`
       : '';
     const card = document.createElement('article');
-    card.className = 'diagnostic-card';
+    card.className = `diagnostic-card diagnostic-card-state-${current.estado || 'pendiente'}`;
     card.innerHTML = `
       <div class="diagnostic-card-header">
         <h4>${current.nombre}</h4>
         <span class="diagnostic-badge ${meta.className}">${meta.label}</span>
       </div>
       ${fotoPrincipal}
-      <p class="diagnostic-snippet">${current.hallazgo ? current.hallazgo : 'Sin hallazgos registrados todavia.'}</p>
-      <p class="diagnostic-recommendation">${current.recomendacion ? current.recomendacion : 'Sin recomendacion registrada.'}</p>
+      <p class="diagnostic-snippet"><strong>Hallazgo:</strong> ${current.hallazgo ? current.hallazgo : 'Sin hallazgos registrados todavía.'}</p>
+      <p class="diagnostic-recommendation"><strong>Acción:</strong> ${current.recomendacion ? current.recomendacion : 'Sin recomendación registrada.'}</p>
       <div class="diagnostic-card-footer">
         <span class="diagnostic-visibility ${current.visibleCliente ? 'is-visible' : 'is-hidden'}">${current.visibleCliente ? 'Visible al cliente' : 'Solo interno'}${current.fotos?.length ? ` | ${current.fotos.length} foto(s)` : ''}</span>
-        <button type="button" ${isDiagnosticLocked() ? 'disabled' : ''} data-action="diagnostico-abrir-parte" data-part-id="${current.id}">${isDiagnosticLocked() ? 'Bloqueado' : 'Editar'}</button>
+        <button type="button" ${isDiagnosticLocked() ? 'disabled' : ''} data-action="diagnostico-abrir-parte" data-part-id="${current.id}">${isDiagnosticLocked() ? 'Bloqueado' : 'Abrir sistema'}</button>
       </div>
     `;
     grid.appendChild(card);
@@ -1386,6 +1523,7 @@ function renderDiagnosticPartsGrid() {
 
   renderDiagnosticToolbarState();
   renderDiagnosticOverview();
+  renderDiagnosticChecklist();
   updateModuleCompletionIndicators();
 }
 
@@ -1520,8 +1658,20 @@ function getCanvasPoint(canvas, event) {
 
 function initOrdenEntradaModule() {
   document.querySelectorAll('[data-workflow-selector]').forEach(panel => {
+    const clientSelect = panel.querySelector('[data-workflow-client-select]');
+    const vehicleSelect = panel.querySelector('[data-workflow-vehicle-select]');
     const visitSearch = panel.querySelector('[data-workflow-visit-search]');
     const visitSelect = panel.querySelector('[data-workflow-visit-select]');
+
+    if (clientSelect && !clientSelect.dataset.bound) {
+      clientSelect.addEventListener('change', handleWorkflowClientSelection);
+      clientSelect.dataset.bound = 'true';
+    }
+
+    if (vehicleSelect && !vehicleSelect.dataset.bound) {
+      vehicleSelect.addEventListener('change', handleWorkflowVehicleSelection);
+      vehicleSelect.dataset.bound = 'true';
+    }
 
     if (visitSearch && !visitSearch.dataset.bound) {
       visitSearch.addEventListener('input', handleWorkflowVisitSearch);
@@ -1620,10 +1770,19 @@ function getWorkflowContextSelection() {
 }
 
 function renderOrdenEntradaContext() {
+  renderEntryPendingQueue();
+
   const clienteNombre = document.getElementById('ordenEntradaClienteNombre');
   const clienteMeta = document.getElementById('ordenEntradaClienteMeta');
   const vehiculoNombre = document.getElementById('ordenEntradaVehiculoNombre');
   const vehiculoMeta = document.getElementById('ordenEntradaVehiculoMeta');
+  const activePanel = document.getElementById('entryActiveCasePanel');
+  const workspaceShell = document.getElementById('entryWorkspaceShell');
+  const activeTitle = document.getElementById('entryActiveCaseTitle');
+  const activeMeta = document.getElementById('entryActiveCaseMeta');
+  const activeStatus = document.getElementById('entryActiveCaseStatus');
+  const activeCopy = document.getElementById('entryActiveCaseCopy');
+  const queueButton = document.getElementById('entryBackToQueueButton');
   const workflowContext = getWorkflowContextSelection();
   const cliente = workflowContext.cliente;
   const clienteNombreFormulario = document.getElementById('tipoIdentificacion')?.value === 'rnc'
@@ -1654,6 +1813,48 @@ function renderOrdenEntradaContext() {
   }
 
   const vehiculo = workflowContext.vehiculo || (cliente?.vehiculos?.length ? cliente.vehiculos[cliente.vehiculos.length - 1] : null);
+  const activeOrder = getCurrentEntryOrderRecord() || (currentLoadedEntryOrderId ? (ordenesEntradaGuardadas.find(item => item.id === currentLoadedEntryOrderId) || null) : null);
+  const hasDraftContext = Boolean((activeOrder || (!entryQueueMode && cliente && vehiculo)));
+
+  if (activePanel) {
+    activePanel.classList.toggle('hidden', entryQueueMode || !hasDraftContext);
+  }
+
+  if (workspaceShell) {
+    workspaceShell.classList.toggle('hidden', entryQueueMode || !hasDraftContext);
+  }
+
+  if (activeTitle) {
+    activeTitle.textContent = activeOrder
+      ? `${activeOrder.id} · ${getStoredClientDisplayName(activeOrder.cliente || {}) || 'Cliente sin nombre'} · ${getVehicleFullLabel(activeOrder.vehiculo || {})}`
+      : (cliente && vehiculo ? `${getClientDisplayName(cliente) || 'Cliente sin nombre'} · ${getVehicleFullLabel(vehiculo)}` : 'Selecciona un cliente con vehículo para crear la OT');
+  }
+
+  if (activeMeta) {
+    activeMeta.textContent = activeOrder
+      ? `OT activa · ${formatDisplayDateTime(activeOrder.updatedAt || activeOrder.savedAt || activeOrder.fecha)}`
+      : (cliente && vehiculo
+        ? `${cliente.id || 'Sin identificación'} · ${vehiculo.placa || 'Sin placa'} · ${vehiculo.chasis || 'Sin chasis'}`
+        : 'La bandeja de recepción te mostrará solo clientes con vehículo y sin orden de entrada.');
+  }
+
+  if (activeStatus) {
+    activeStatus.className = activeOrder ? 'badge badge-info' : 'badge badge-neutral';
+    activeStatus.textContent = activeOrder ? 'OT en edición' : 'Nueva orden';
+  }
+
+  if (activeCopy) {
+    activeCopy.textContent = activeOrder
+      ? (activeOrder.ordenEntrada?.motivoEntrada || 'Continúa documentando la recepción del vehículo.')
+      : 'Completa la recepción inicial, la inspección física y la firma para registrar la nueva orden de entrada.';
+  }
+
+  if (queueButton) {
+    queueButton.onclick = () => {
+      entryQueueMode = true;
+      renderOrdenEntradaContext();
+    };
+  }
 
   if (vehiculoNombre) {
     vehiculoNombre.textContent = vehiculo ? getVehicleFullLabel(vehiculo) : (vehiculoModeloFormulario || 'Vehículo no seleccionado');
@@ -1668,6 +1869,128 @@ function renderOrdenEntradaContext() {
         : 'Selecciona un vehículo guardado para preparar la orden de entrada.';
     }
   }
+}
+
+function getEntryPendingCandidates() {
+  return clientesGuardados
+    .flatMap(cliente => (Array.isArray(cliente.vehiculos) ? cliente.vehiculos : []).map(vehiculo => ({
+      cliente,
+      vehiculo,
+      lastOrder: getLatestEntryOrderForClientVehicle(cliente, vehiculo)
+    })))
+    .sort((a, b) => {
+      const clientCompare = (getClientDisplayName(a.cliente) || '').localeCompare(getClientDisplayName(b.cliente) || '', 'es', { sensitivity: 'base' });
+      if (clientCompare !== 0) {
+        return clientCompare;
+      }
+      return (getVehicleFullLabel(a.vehiculo) || '').localeCompare(getVehicleFullLabel(b.vehiculo) || '', 'es', { sensitivity: 'base' });
+    });
+}
+
+function getLatestEntryOrderForClientVehicle(cliente = {}, vehiculo = null) {
+  if (!cliente || !vehiculo) {
+    return null;
+  }
+
+  const clientId = getClientRecordId(cliente);
+  const vehicleId = getVehicleRecordId(vehiculo);
+
+  return ordenesEntradaGuardadas
+    .filter(orden => {
+      const sameClient = orden.cliente?.clientId === clientId || (cliente.id && orden.cliente?.identificacion === cliente.id);
+      return sameClient && isVehicleRecordMatch(orden.vehiculo || {}, vehiculo, vehicleId);
+    })
+    .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha))[0] || null;
+}
+
+function renderEntryPendingQueue() {
+  const container = document.getElementById('entryPendingQueue');
+  const meta = document.getElementById('entryPendingQueueMeta');
+  if (!container) {
+    return;
+  }
+
+  const items = getEntryPendingCandidates();
+  if (meta) {
+    meta.textContent = items.length
+      ? `${items.length} vehículo(s) disponibles para crear una nueva orden de entrada, incluyendo reingresos.`
+      : 'No hay clientes con vehículos registrados en este momento.';
+  }
+
+  container.innerHTML = '';
+  if (!items.length) {
+    container.innerHTML = '<article class="entry-pending-empty">No hay clientes con vehículos listos para recepción. Agrega un vehículo y podrás abrir una nueva OT desde aquí.</article>';
+    return;
+  }
+
+  items.forEach(({ cliente, vehiculo, lastOrder }) => {
+    const clientId = getClientRecordId(cliente);
+    const vehicleId = getVehicleRecordId(vehiculo);
+    const hasHistory = Boolean(lastOrder);
+    const statusLabel = hasHistory ? `Última OT ${lastOrder.id}` : 'Sin OT previa';
+    const statusTone = hasHistory ? 'info' : 'neutral';
+    const historyLabel = hasHistory
+      ? `${formatDisplayDateTime(lastOrder.updatedAt || lastOrder.savedAt || lastOrder.fecha)} · ${lastOrder.ordenEntrada?.motivoEntrada || 'Sin motivo registrado'}`
+      : 'Primer ingreso para este vehículo en recepción.';
+    const card = document.createElement('article');
+    card.className = 'entry-pending-card';
+    card.innerHTML = `
+      <div class="entry-pending-card-header">
+        <div>
+          <p class="entry-summary-kicker">${hasHistory ? 'Reingreso disponible' : 'Recepción disponible'}</p>
+          <h4>${escapeHtml(getClientDisplayName(cliente) || 'Cliente sin nombre')}</h4>
+        </div>
+        <span class="${getBadgeClass(statusTone)}">${escapeHtml(statusLabel)}</span>
+      </div>
+      <p class="entry-pending-card-copy"><strong>Vehículo:</strong> ${escapeHtml(getVehicleFullLabel(vehiculo))}</p>
+      <p class="entry-pending-card-copy"><strong>Identificadores:</strong> ${escapeHtml(vehiculo.placa || 'Sin placa')} · ${escapeHtml(vehiculo.chasis || 'Sin chasis')}</p>
+      <p class="entry-pending-card-copy"><strong>Historial:</strong> ${escapeHtml(historyLabel)}</p>
+      <div class="entry-pending-card-footer">
+        <span class="entry-pending-card-meta">${escapeHtml(cliente.id || 'Sin identificación')} · ${escapeHtml(cliente.telefono || 'Sin teléfono')}</span>
+        <button type="button" class="btn-primary">Nueva orden de entrada</button>
+      </div>
+    `;
+
+    card.querySelector('button')?.addEventListener('click', async () => {
+      await startEntryOrderForVehicle(clientId, vehicleId);
+    });
+
+    container.appendChild(card);
+  });
+}
+
+async function startEntryOrderForVehicle(clientId, vehicleId) {
+  const clientSelect = document.getElementById('cargarClienteSelect');
+  const vehicleSelect = document.getElementById('cargarVehiculoClienteSelect');
+  if (!clientSelect || !vehicleSelect) {
+    return;
+  }
+
+  clientSelect.value = clientId || '';
+  await cargarClienteSeleccionado();
+  if (currentLoadedClientId !== clientId) {
+    return;
+  }
+
+  vehicleSelect.value = vehicleId || '';
+  await cargarVehiculoSeleccionadoCliente();
+  if (currentLoadedVehicleId !== vehicleId) {
+    return;
+  }
+
+  resetWorkflowModules({ persistDraft: false });
+  entryQueueMode = false;
+  diagnosticQueueMode = true;
+  currentLoadedEntryOrderId = null;
+  currentLoadedCotizacionId = null;
+  const fechaInput = document.getElementById('fecha');
+  if (fechaInput) {
+    fechaInput.value = getCurrentDateISO();
+  }
+  renderOrdenEntradaContext();
+  updateModuleCompletionIndicators();
+  scheduleModuleDraftSave();
+  document.getElementById('motivoEntrada')?.focus();
 }
 
 function getDiagnosticoPriorityLabel(priority) {
@@ -1709,6 +2032,20 @@ function diagnosticoTieneContenidoGuardado(diagnostico = {}) {
     || diagnosticoBase.trabajo
     || hayHallazgos
   );
+}
+
+function isDiagnosticoRecordReadyForQuote(diagnostico = {}) {
+  const diagnosticoBase = diagnostico && typeof diagnostico === 'object' ? diagnostico : {};
+  const partes = diagnosticoBase.partes || {};
+  const hayHallazgos = Object.values(partes).some(part => part && (part.estado !== 'pendiente' || part.hallazgo || part.recomendacion || (part.fotos && part.fotos.length)));
+  const tieneNarrativa = Boolean(
+    diagnosticoBase.sintomasReportados
+    || diagnosticoBase.pruebasRealizadas
+    || diagnosticoBase.causaProbable
+    || diagnosticoBase.diagnosticoInicial
+  );
+
+  return Boolean(diagnosticoBase.trabajo && (tieneNarrativa || hayHallazgos));
 }
 
 function loadDiagnosticoState(data = {}, options = {}) {
@@ -1888,6 +2225,8 @@ function confirmWorkflowReset(targetLabel) {
 function resetWorkflowModules(options = {}) {
   const { persistDraft = true } = options;
 
+  entryQueueMode = true;
+  diagnosticQueueMode = true;
   currentLoadedEntryOrderId = null;
   currentLoadedCotizacionId = null;
   loadOrdenEntradaState({});
@@ -1914,7 +2253,10 @@ function resetWorkflowModules(options = {}) {
   syncDiagnosticLockUI();
   renderPrintableDiagnosticFindings();
 
-  document.getElementById('selectServicioCatalogoNuevaCotizacion').value = '';
+  const selectServicioNuevaCotizacion = document.getElementById('selectServicioCatalogoNuevaCotizacion');
+  if (selectServicioNuevaCotizacion) {
+    selectServicioNuevaCotizacion.value = '';
+  }
   document.getElementById('horas').value = '2';
   document.getElementById('dificultad').value = '1.2';
   document.getElementById('experiencia').value = '1.0';
@@ -1933,7 +2275,10 @@ function resetWorkflowModules(options = {}) {
     zoneExtraSurcharge: 0
   });
 
-  document.getElementById('selectPiezaCatalogoNuevaCotizacion').value = '';
+  const selectPiezaNuevaCotizacion = document.getElementById('selectPiezaCatalogoNuevaCotizacion');
+  if (selectPiezaNuevaCotizacion) {
+    selectPiezaNuevaCotizacion.value = '';
+  }
   setCotizacionStatusUI('pendiente');
   currentCotizacionApprovalConfig = getDefaultCotizacionApprovalConfig();
   piezasActivas = [];
@@ -1974,6 +2319,7 @@ function resetWorkflowModules(options = {}) {
   renderOrdenEntradaContext();
   renderDiagnosticModuleContext();
   renderServicioContext();
+  syncEntryClientVehicleSelectors();
   updateModuleCompletionIndicators();
 
   if (persistDraft) {
@@ -1998,24 +2344,34 @@ async function liberarContextoOperativo() {
   updateDraftRecoveryActions();
 }
 
-function hasSelectedClientAndVehicle() {
+function hasLinkedClientAndVehicleSelection() {
   return Boolean(currentLoadedClientId && currentLoadedVehicleId);
 }
 
+function hasClientContextData() {
+  const tipoIdentificacion = document.getElementById('tipoIdentificacion')?.value || 'cedula';
+  const identificacion = document.getElementById('identificacion')?.value.trim() || '';
+  const nombreCliente = document.getElementById('nombreCliente')?.value.trim() || '';
+  const nombreEmpresa = document.getElementById('nombreEmpresa')?.value.trim() || '';
+  const displayName = tipoIdentificacion === 'rnc' ? (nombreEmpresa || nombreCliente) : nombreCliente;
+
+  return Boolean(identificacion && displayName);
+}
+
+function hasVehicleContextData() {
+  return hasValidFieldValues(['vehiculoModelo', 'vehiculoAnio', 'vehiculoCombustible', 'vehiculoChasis', 'vehiculoPlaca']);
+}
+
+function hasSelectedClientAndVehicle() {
+  return Boolean(hasLinkedClientAndVehicleSelection() || (hasClientContextData() && hasVehicleContextData()));
+}
+
 function isEntryDataReady() {
-  return Boolean(hasSelectedClientAndVehicle() && (isOrdenModuleComplete() || resolveEntryOrderRecordForSelection()));
+  return Boolean(resolveEntryOrderRecordForSelection() || (hasSelectedClientAndVehicle() && isOrdenModuleComplete()));
 }
 
 function isDiagnosticDataReady() {
   return Boolean(isEntryDataReady() && isDiagnosticoModuleComplete());
-}
-
-function getModuleDependencyGuard(moduleId) {
-  if (moduleId === 'cotStepSalida') {
-    return getSalidaGuardState();
-  }
-
-  return { allowed: true };
 }
 
 function syncDiagnosticoFromEntrada(force = false) {
@@ -2031,55 +2387,191 @@ function syncDiagnosticoFromEntrada(force = false) {
 }
 
 function renderDiagnosticModuleContext() {
-  const title = document.getElementById('diagnosticContextTitle');
-  const meta = document.getElementById('diagnosticContextMeta');
-  const entryTitle = document.getElementById('diagnosticEntryTitle');
-  const entryMeta = document.getElementById('diagnosticEntryMeta');
-  const flowTitle = document.getElementById('diagnosticFlowTitle');
-  const flowMeta = document.getElementById('diagnosticFlowMeta');
+  renderDiagnosticPendingQueue();
+  const activeCasePanel = document.getElementById('diagnosticActiveCasePanel');
+  const workspaceShell = document.getElementById('diagnosticWorkspaceShell');
+  const caseKicker = document.getElementById('diagnosticCaseKicker');
+  const caseTitle = document.getElementById('diagnosticCaseTitle');
+  const caseMeta = document.getElementById('diagnosticCaseMeta');
+  const caseStatus = document.getElementById('diagnosticCaseStatus');
+  const caseWork = document.getElementById('diagnosticCaseWork');
+  const entryButton = document.getElementById('diagnosticCaseEntryButton');
+  const startButton = document.getElementById('diagnosticCaseStartButton');
   const workflowContext = getWorkflowContextSelection();
   const cliente = workflowContext.cliente;
   const vehiculo = workflowContext.vehiculo;
   const ordenEntrada = getOrdenEntradaPayload();
+  const activeOrder = getCurrentEntryOrderRecord() || (currentLoadedEntryOrderId ? (ordenesEntradaGuardadas.find(item => item.id === currentLoadedEntryOrderId) || null) : null);
+  const snapshot = activeOrder ? getOrdenWorkflowSnapshot(activeOrder) : null;
 
   syncDiagnosticoFromEntrada();
   renderDiagnosticOverview();
 
-  if (title) {
-    title.textContent = cliente && vehiculo
-      ? `${getClientDisplayName(cliente) || 'Cliente sin nombre'} · ${vehiculo.modelo || 'Vehiculo sin modelo'}`
-      : 'Sin cliente seleccionado';
+  if (activeCasePanel) {
+    activeCasePanel.classList.toggle('hidden', diagnosticQueueMode || !activeOrder);
   }
+
+  if (workspaceShell) {
+    workspaceShell.classList.toggle('hidden', diagnosticQueueMode || !activeOrder);
+  }
+
+  if (caseKicker) {
+    caseKicker.textContent = snapshot?.title || 'Caso activo';
+  }
+
+  if (caseTitle) {
+    caseTitle.textContent = activeOrder && cliente && vehiculo
+      ? `${activeOrder.id} · ${getClientDisplayName(cliente) || 'Cliente sin nombre'} · ${getVehicleFullLabel(vehiculo)}`
+      : 'Selecciona un caso para diagnosticar';
+  }
+
+  if (caseMeta) {
+    caseMeta.textContent = activeOrder
+      ? `${cliente?.id || 'Sin identificación'} · ${vehiculo?.placa || 'Sin placa'} · ${vehiculo?.chasis || 'Sin chasis'} · ${formatDisplayDateTime(activeOrder.updatedAt || activeOrder.savedAt || activeOrder.fecha)}`
+      : 'Desde la bandeja puedes abrir la orden de entrada o entrar al menú de diagnóstico.';
+  }
+
+  if (caseStatus) {
+    const tone = snapshot ? getDashboardStageTone(snapshot.stage) : 'neutral';
+    caseStatus.className = getBadgeClass(tone);
+    caseStatus.textContent = snapshot?.title || 'Sin caso';
+  }
+
+  if (caseWork) {
+    caseWork.textContent = activeOrder
+      ? (isDiagnosticDataReady()
+        ? `Prioridad ${getDiagnosticoPriorityLabel(document.getElementById('prioridadDiagnostico')?.value || 'media')} · ${getVehicleDiagnosticSummary().meta.label}`
+        : (ordenEntrada.motivoEntrada || snapshot?.detail || 'Pendiente de revisión técnica.'))
+      : 'Todavía no hay una orden de trabajo activa en diagnóstico.';
+  }
+
+  if (entryButton) {
+    entryButton.disabled = !activeOrder;
+    entryButton.onclick = activeOrder ? (() => previewOrdenEntradaReadOnly(activeOrder.id)) : null;
+  }
+
+  if (startButton) {
+    startButton.disabled = !activeOrder;
+    startButton.textContent = diagnosticoTieneContenidoGuardado(activeOrder?.diagnostico || {}) ? 'Continuar diagnóstico' : 'Diagnosticar';
+    startButton.onclick = activeOrder ? (() => openDiagnosticCaseFromQueue(activeOrder.id)) : null;
+  }
+}
+
+function getDiagnosticPendingOrders() {
+  return ordenesEntradaGuardadas
+    .slice()
+    .map(orden => ({
+      orden,
+      snapshot: getOrdenWorkflowSnapshot(orden)
+    }))
+    .filter(item => item.snapshot.targetTab === 'cotStepDiagnostico')
+    .sort((a, b) => new Date(b.orden.updatedAt || b.orden.savedAt || b.orden.fecha) - new Date(a.orden.updatedAt || a.orden.savedAt || a.orden.fecha));
+}
+
+function renderDiagnosticPendingQueue() {
+  const container = document.getElementById('diagnosticPendingQueue');
+  const meta = document.getElementById('diagnosticPendingQueueMeta');
+  if (!container) {
+    return;
+  }
+
+  const items = getDiagnosticPendingOrders();
+  const activeOrderId = currentLoadedEntryOrderId || '';
 
   if (meta) {
-    meta.textContent = cliente && vehiculo
-      ? `${cliente.id || 'Sin identificacion'} · ${vehiculo.placa || 'Sin placa'} · ${vehiculo.chasis || 'Sin chasis'}`
-      : 'La revision tecnica se alimenta del cliente y vehiculo seleccionados.';
+    meta.textContent = items.length
+      ? `${items.length} caso(s) pendiente(s) o en proceso listos para continuar desde este módulo.`
+      : 'No hay órdenes pendientes de diagnóstico. Los casos listos para cotizar ya salieron de esta bandeja.';
   }
 
-  if (entryTitle) {
-    entryTitle.textContent = isEntryDataReady()
-      ? (ordenEntrada.motivoEntrada || 'Entrada cargada')
-      : 'Entrada pendiente';
+  container.innerHTML = '';
+
+  if (!items.length) {
+    container.innerHTML = '<article class="diagnostic-pending-empty">No hay casos pendientes de diagnóstico en este momento.</article>';
+    return;
   }
 
-  if (entryMeta) {
-    entryMeta.textContent = isEntryDataReady()
-      ? `${ordenEntrada.millajeEntrada || 'Sin millaje'} km · ${ordenEntrada.combustibleLabel || 'Combustible N/D'} · ${(ordenEntrada.lucesTablero || []).length} testigo(s)`
-      : 'Completa la orden de entrada para traer motivo, millaje, testigos y observaciones.';
+  items.forEach(item => {
+    const { orden, snapshot } = item;
+    const activeClass = orden.id === activeOrderId ? ' is-active' : '';
+    const clienteNombre = escapeHtml(getStoredClientDisplayName(orden.cliente || {}) || 'Cliente sin nombre');
+    const vehiculoLabel = escapeHtml(getVehicleFullLabel(orden.vehiculo || {}));
+    const motivoEntrada = escapeHtml(orden.ordenEntrada?.motivoEntrada || 'Sin motivo registrado');
+    const fechaActualizacion = escapeHtml(formatDisplayDateTime(orden.updatedAt || orden.savedAt || orden.fecha));
+    const trabajo = escapeHtml(orden.diagnostico?.trabajo || orden.diagnostico?.diagnosticoInicial || snapshot.detail || 'Listo para revisión técnica');
+    const accionLabel = diagnosticoTieneContenidoGuardado(orden.diagnostico || {}) ? 'Continuar diagnóstico' : 'Diagnosticar';
+
+    const card = document.createElement('article');
+    card.className = `diagnostic-pending-card${activeClass}`;
+    card.innerHTML = `
+      <div class="diagnostic-pending-card-header">
+        <div>
+          <p class="entry-summary-kicker">${escapeHtml(snapshot.title)}</p>
+          <h4>${escapeHtml(orden.id)} · ${clienteNombre}</h4>
+        </div>
+        <span class="${getBadgeClass(getDashboardStageTone(snapshot.stage))}">${escapeHtml(snapshot.title)}</span>
+      </div>
+      <p class="diagnostic-pending-card-vehicle">${vehiculoLabel}${orden.vehiculo?.placa ? ` · ${escapeHtml(orden.vehiculo.placa)}` : ''}</p>
+      <p class="diagnostic-pending-card-copy"><strong>Motivo:</strong> ${motivoEntrada}</p>
+      <p class="diagnostic-pending-card-copy"><strong>Avance:</strong> ${trabajo}</p>
+      <div class="diagnostic-pending-card-footer">
+        <span class="diagnostic-pending-card-meta">Actualizado ${fechaActualizacion}</span>
+        <div class="diagnostic-pending-card-actions">
+          <button type="button" class="btn-secondary" data-case-action="entry">Ver entrada</button>
+          <button type="button" class="btn-secondary" data-case-action="print" ${diagnosticoTieneContenidoGuardado(orden.diagnostico || {}) ? '' : 'disabled'}>Imprimir diagnóstico</button>
+          <button type="button" class="btn-primary" data-case-action="diagnose">${accionLabel}</button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector('[data-case-action="entry"]')?.addEventListener('click', () => {
+      previewOrdenEntradaReadOnly(orden.id);
+    });
+
+    card.querySelector('[data-case-action="print"]')?.addEventListener('click', () => {
+      printDiagnosticoFromOrder(orden.id);
+    });
+
+    card.querySelector('[data-case-action="diagnose"]')?.addEventListener('click', () => {
+      openDiagnosticCaseFromQueue(orden.id);
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function previewOrdenEntradaReadOnly(orderId) {
+  const orden = ordenesEntradaGuardadas.find(item => item.id === orderId);
+  if (!orden) {
+    notifyError('OT no encontrada', 'No se pudo localizar la orden de entrada seleccionada.', { kicker: 'Recepción' });
+    return;
   }
 
-  if (flowTitle) {
-    flowTitle.textContent = isDiagnosticDataReady()
-      ? 'Diagnostico listo para cotizar'
-      : (isEntryDataReady() ? 'Diagnostico en proceso' : 'Esperando recepcion');
+  openPrintPreviewWindow({
+    title: `Vista OT ${orden.id}`,
+    html: generarHTMLImpresionOrdenEntrada(orden),
+    width: 980,
+    height: 760
+  });
+}
+
+function openDiagnosticCaseFromQueue(orderId) {
+  diagnosticQueueMode = false;
+  openWorkflowVisit(orderId, 'cotStepDiagnostico');
+}
+
+function printDiagnosticoFromOrder(orderId) {
+  const orden = ordenesEntradaGuardadas.find(item => item.id === orderId);
+  if (!orden || !diagnosticoTieneContenidoGuardado(orden.diagnostico || {})) {
+    notifyValidation('Diagnóstico pendiente', 'Ese expediente todavía no tiene un diagnóstico guardado para imprimir.', { kicker: 'Diagnóstico' });
+    return;
   }
 
-  if (flowMeta) {
-    flowMeta.textContent = isDiagnosticDataReady()
-      ? `Prioridad ${getDiagnosticoPriorityLabel(document.getElementById('prioridadDiagnostico')?.value || 'media')} · ${getVehicleDiagnosticSummary().meta.label}`
-      : 'Cliente/Vehiculo → Entrada → Diagnostico → Cotizacion → Facturacion';
-  }
+  diagnosticQueueMode = false;
+  cargarOrdenEntradaById(orderId, { preserveCurrentTab: true, targetTab: null });
+  imprimirDiagnosticoPDF();
+  diagnosticQueueMode = true;
+  renderDiagnosticModuleContext();
 }
 
 function diagnosticoTieneContenidoRegistrado() {
@@ -2088,11 +2580,6 @@ function diagnosticoTieneContenidoRegistrado() {
 
 function guardarDiagnostico(options = {}) {
   const { silent = false } = options;
-
-  if (!hasSelectedClientAndVehicle()) {
-    notifyValidation('Contexto incompleto', 'Selecciona primero un cliente y un vehículo antes de guardar el diagnóstico.', { kicker: 'Diagnóstico' });
-    return false;
-  }
 
   if (!isEntryDataReady()) {
     notifyValidation('Orden de entrada pendiente', 'Completa y guarda la orden de entrada antes de consolidar el diagnóstico.', { kicker: 'Diagnóstico' });
@@ -2109,12 +2596,29 @@ function guardarDiagnostico(options = {}) {
     estatusTrabajo.value = 'en_diagnostico';
   }
 
-  const diagnosticoPayload = getDiagnosticoPayload();
+  if (!currentLoadedEntryOrderId) {
+    const ordenGuardada = guardarOrdenEntrada(false);
+    if (!ordenGuardada) {
+      notifyError('OT no disponible', 'No se pudo crear la orden de trabajo base para guardar el diagnóstico.', { kicker: 'Diagnóstico' });
+      return false;
+    }
+  }
+
   const ordenIndex = ordenesEntradaGuardadas.findIndex(orden => orden.id === currentLoadedEntryOrderId);
   if (ordenIndex < 0) {
     notifyError('OT no disponible', 'No se encontró la orden de trabajo activa para guardar el diagnóstico. Guarda primero la orden de entrada nuevamente.', { kicker: 'Diagnóstico' });
     return false;
   }
+
+  const existingOrden = ordenesEntradaGuardadas[ordenIndex];
+  const diagnosticoPayload = normalizeDiagnosticoRecord({
+    ...(existingOrden?.diagnostico || {}),
+    ...getDiagnosticoPayload()
+  }, {
+    ordenEntradaId: currentLoadedEntryOrderId,
+    cotizacionId: currentLoadedCotizacionId || existingOrden?.cotizacionId || '',
+    useCurrentFallback: true
+  });
 
   ordenesEntradaGuardadas.splice(ordenIndex, 1, {
     ...ordenesEntradaGuardadas[ordenIndex],
@@ -2156,10 +2660,10 @@ function concluirDiagnostico() {
   }
 
   persistModuleDraft();
+  diagnosticQueueMode = true;
   renderDiagnosticModuleContext();
   updateModuleCompletionIndicators();
-  openCotStep(null, 'cotStepServicio');
-  notifySuccess('Diagnóstico concluido', 'El expediente pasa a Cotización y el estado operativo quedó actualizado.', { kicker: 'Diagnóstico' });
+  notifySuccess('Diagnóstico concluido', 'El expediente quedó listo para Cotización y regresó a la bandeja de diagnóstico.', { kicker: 'Diagnóstico' });
 }
 
 function renderServicioContext() {
@@ -2511,11 +3015,136 @@ function getEntryClientSearchText(cliente = {}) {
   ].join(' ').toLowerCase();
 }
 
+function getLockedWorkflowOrder() {
+  if (!currentLoadedEntryOrderId) {
+    return null;
+  }
+
+  return ordenesEntradaGuardadas.find(orden => orden.id === currentLoadedEntryOrderId) || null;
+}
+
+function isWorkflowSelectionLocked() {
+  return Boolean(getLockedWorkflowOrder());
+}
+
+function updateWorkflowSelectorLockState() {
+  const lockedOrder = getLockedWorkflowOrder();
+  const isLocked = Boolean(lockedOrder);
+
+  document.querySelectorAll('[data-workflow-selector]').forEach(panel => {
+    panel.classList.toggle('is-locked', isLocked);
+
+    const clientSelect = panel.querySelector('[data-workflow-client-select]');
+    const vehicleSelect = panel.querySelector('[data-workflow-vehicle-select]');
+    const visitSearch = panel.querySelector('[data-workflow-visit-search]');
+    const visitSelect = panel.querySelector('[data-workflow-visit-select]');
+    const lockBanner = panel.querySelector('[data-workflow-lock-banner]');
+    const lockMessage = panel.querySelector('[data-workflow-lock-message]');
+
+    if (clientSelect) {
+      clientSelect.disabled = isLocked;
+    }
+
+    if (vehicleSelect) {
+      vehicleSelect.disabled = isLocked || !currentLoadedClientId;
+    }
+
+    if (visitSearch) {
+      visitSearch.disabled = isLocked;
+    }
+
+    if (visitSelect) {
+      visitSelect.disabled = isLocked;
+    }
+
+    if (lockBanner) {
+      lockBanner.classList.toggle('hidden', !isLocked);
+    }
+
+    if (lockMessage) {
+      lockMessage.textContent = isLocked
+        ? `Expediente ${lockedOrder.id} cargado. Para no alterar una visita ya guardada, libera este expediente antes de cambiar cliente, vehículo o OT.`
+        : '';
+    }
+  });
+}
+
+function syncWorkflowContextSelectors() {
+  const selectorPanels = Array.from(document.querySelectorAll('[data-workflow-selector]'));
+  if (!selectorPanels.length) {
+    return;
+  }
+
+  selectorPanels.forEach(panel => {
+    const clientSelect = panel.querySelector('[data-workflow-client-select]');
+    const vehicleSelect = panel.querySelector('[data-workflow-vehicle-select]');
+
+    if (clientSelect) {
+      clientSelect.innerHTML = '<option value="">-- Selecciona un cliente --</option>';
+      clientesGuardados
+        .slice()
+        .sort((a, b) => (getClientDisplayName(a) || '').localeCompare(getClientDisplayName(b) || '', 'es'))
+        .forEach(cliente => {
+          const option = document.createElement('option');
+          option.value = getClientRecordId(cliente);
+          option.textContent = `${getClientDisplayName(cliente) || 'Cliente sin nombre'} (${getClientRecordId(cliente)})`;
+          clientSelect.appendChild(option);
+        });
+      clientSelect.value = currentLoadedClientId || '';
+    }
+
+    if (vehicleSelect) {
+      vehicleSelect.innerHTML = '<option value="">-- Selecciona un vehículo --</option>';
+      const cliente = findClientByRecordId(currentLoadedClientId);
+      if (cliente?.vehiculos?.length) {
+        cliente.vehiculos.forEach(vehiculo => {
+          const option = document.createElement('option');
+          option.value = getVehicleRecordId(vehiculo);
+          option.textContent = `${getVehicleFullLabel(vehiculo)}${vehiculo.placa ? ` (${vehiculo.placa})` : ''}`;
+          vehicleSelect.appendChild(option);
+        });
+      }
+      vehicleSelect.value = currentLoadedVehicleId || '';
+      vehicleSelect.disabled = !currentLoadedClientId;
+    }
+  });
+
+  updateWorkflowSelectorLockState();
+}
+
+function doesOrderMatchWorkflowSelection(orden = {}) {
+  if (!orden) {
+    return false;
+  }
+
+  const matchesClient = !currentLoadedClientId
+    || orden.cliente?.clientId === currentLoadedClientId
+    || (findClientByRecordId(currentLoadedClientId)?.id && orden.cliente?.identificacion === findClientByRecordId(currentLoadedClientId).id);
+
+  if (!matchesClient) {
+    return false;
+  }
+
+  if (!currentLoadedVehicleId) {
+    return true;
+  }
+
+  const cliente = findClientByRecordId(currentLoadedClientId);
+  const vehiculo = cliente?.vehiculos?.find(item => getVehicleRecordId(item) === currentLoadedVehicleId) || null;
+  return Boolean(
+    orden.vehiculo?.vehicleId === currentLoadedVehicleId
+    || (vehiculo && orden.vehiculo?.chasis && orden.vehiculo.chasis === vehiculo.chasis)
+    || (vehiculo && orden.vehiculo?.placa && orden.vehiculo.placa === vehiculo.placa)
+  );
+}
+
 function syncEntryClientVehicleSelectors() {
   const selectorPanels = Array.from(document.querySelectorAll('[data-workflow-selector]'));
   if (!selectorPanels.length) {
     return;
   }
+
+  syncWorkflowContextSelectors();
 
   const selectedVisitId = currentLoadedEntryOrderId || resolveEntryOrderRecordForSelection()?.id || '';
   selectorPanels.forEach(panel => {
@@ -2527,7 +3156,7 @@ function syncEntryClientVehicleSelectors() {
 
     const searchQuery = (visitSearch?.value || '').trim().toLowerCase();
     const filteredVisits = ordenesEntradaGuardadas
-      .filter(orden => getOrdenEntradaSearchText(orden).includes(searchQuery))
+      .filter(orden => doesOrderMatchWorkflowSelection(orden) && getOrdenEntradaSearchText(orden).includes(searchQuery))
       .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha));
 
     visitSelect.innerHTML = filteredVisits.length
@@ -2545,20 +3174,64 @@ function syncEntryClientVehicleSelectors() {
       ? selectedVisitId
       : '';
   });
+
+  updateWorkflowSelectorLockState();
 }
 
 function handleWorkflowVisitSearch() {
   syncEntryClientVehicleSelectors();
 }
 
+async function handleWorkflowClientSelection(event) {
+  if (isWorkflowSelectionLocked()) {
+    notifyValidation('Expediente bloqueado', 'Libera el expediente activo antes de cambiar cliente, vehículo o visita desde este módulo.', { kicker: 'Flujo operativo' });
+    syncEntryClientVehicleSelectors();
+    return;
+  }
+
+  const clientSelect = event?.target;
+  const globalClientSelect = document.getElementById('cargarClienteSelect');
+  if (!clientSelect || !globalClientSelect) {
+    return;
+  }
+
+  globalClientSelect.value = clientSelect.value || '';
+  await cargarClienteSeleccionado();
+  syncEntryClientVehicleSelectors();
+}
+
+async function handleWorkflowVehicleSelection(event) {
+  if (isWorkflowSelectionLocked()) {
+    notifyValidation('Expediente bloqueado', 'Libera el expediente activo antes de cambiar cliente, vehículo o visita desde este módulo.', { kicker: 'Flujo operativo' });
+    syncEntryClientVehicleSelectors();
+    return;
+  }
+
+  const vehicleSelect = event?.target;
+  const globalVehicleSelect = document.getElementById('cargarVehiculoClienteSelect');
+  if (!vehicleSelect || !globalVehicleSelect) {
+    return;
+  }
+
+  globalVehicleSelect.value = vehicleSelect.value || '';
+  await cargarVehiculoSeleccionadoCliente();
+  syncEntryClientVehicleSelectors();
+}
+
 function handleWorkflowVisitSelection(event) {
+  if (isWorkflowSelectionLocked()) {
+    notifyValidation('Expediente bloqueado', 'Libera el expediente activo antes de cargar otra visita desde este módulo.', { kicker: 'Flujo operativo' });
+    syncEntryClientVehicleSelectors();
+    return;
+  }
+
   const workflowVisitSelect = (event?.target || event)?.closest?.('[data-workflow-selector]')?.querySelector('[data-workflow-visit-select]')
     || document.getElementById('entryVisitSelect');
   if (!workflowVisitSelect || !workflowVisitSelect.value) {
     return;
   }
 
-  cargarOrdenEntradaById(workflowVisitSelect.value);
+  cargarOrdenEntradaById(workflowVisitSelect.value, { preserveCurrentTab: true });
   syncEntryClientVehicleSelectors();
   scheduleModuleDraftSave();
 }
@@ -3162,8 +3835,8 @@ function renderPrintableOrdenEntrada(ordenEntrada = getOrdenEntradaPayload()) {
 }
 
 function guardarOrdenEntrada(showAlert = true) {
-  if (!hasSelectedClientAndVehicle()) {
-    notifyValidation('Cliente y vehículo requeridos', 'Primero debes seleccionar un cliente y uno de sus vehículos antes de guardar la orden de entrada.', { kicker: 'Recepción' });
+  if (!hasClientContextData() || !hasVehicleContextData()) {
+    notifyValidation('Datos incompletos', 'Completa la información base del cliente y del vehículo antes de guardar la orden de entrada.', { kicker: 'Recepción' });
     openTab(null, 'cotStepCliente', null, true);
     return false;
   }
@@ -3177,6 +3850,7 @@ function guardarOrdenEntrada(showAlert = true) {
   renderOrdenEntradaContext();
   renderDiagnosticModuleContext();
   renderServicioContext();
+  syncEntryClientVehicleSelectors();
   updateModuleCompletionIndicators();
 
   if (showAlert) {
@@ -3187,6 +3861,20 @@ function guardarOrdenEntrada(showAlert = true) {
 }
 
 function buildOrdenEntradaRecord() {
+  const currentOrden = currentLoadedEntryOrderId
+    ? (ordenesEntradaGuardadas.find(item => item.id === currentLoadedEntryOrderId) || null)
+    : null;
+  const diagnosticoRecord = diagnosticoTieneContenidoRegistrado()
+    ? normalizeDiagnosticoRecord(getDiagnosticoPayload(), {
+      ordenEntradaId: currentLoadedEntryOrderId || currentOrden?.id || '',
+      cotizacionId: currentLoadedCotizacionId || '',
+      useCurrentFallback: true
+    })
+    : (currentOrden?.diagnostico ? normalizeDiagnosticoRecord(currentOrden.diagnostico, {
+      ordenEntradaId: currentOrden.id,
+      cotizacionId: currentOrden.cotizacionId || currentOrden.diagnostico?.cotizacionId || ''
+    }) : null);
+
   return {
     fecha: document.getElementById('fecha')?.value || '',
     cliente: {
@@ -3211,9 +3899,7 @@ function buildOrdenEntradaRecord() {
       color: document.getElementById('vehiculoColor')?.value.trim() || ''
     },
     ordenEntrada: getOrdenEntradaPayload(),
-    diagnostico: diagnosticoTieneContenidoRegistrado()
-      ? getDiagnosticoPayload()
-      : (getCurrentEntryOrderRecord()?.diagnostico || null)
+    diagnostico: diagnosticoRecord
   };
 }
 
@@ -3243,13 +3929,17 @@ function guardarOrdenEntradaEnHistorial() {
   const existingIndex = ordenesEntradaGuardadas.findIndex(orden => orden.id === currentLoadedEntryOrderId);
   const existingRecord = existingIndex >= 0 ? ordenesEntradaGuardadas[existingIndex] : null;
   const shouldUpdateExisting = Boolean(existingRecord);
-
-  const ordenRecord = {
+  const entryId = shouldUpdateExisting ? existingRecord.id : generarEntidadId('ENT');
+  const normalizedBaseRecord = normalizeOrdenEntradaRecord({
     ...baseRecord,
-    id: shouldUpdateExisting ? existingRecord.id : `ENT-${Date.now()}`,
+    ...existingRecord,
+    ...baseRecord,
+    id: entryId,
     savedAt: shouldUpdateExisting ? (existingRecord.savedAt || now) : now,
     updatedAt: now
-  };
+  });
+
+  const ordenRecord = normalizedBaseRecord;
 
   if (shouldUpdateExisting) {
     ordenesEntradaGuardadas.splice(existingIndex, 1, ordenRecord);
@@ -3266,7 +3956,17 @@ function guardarOrdenEntradaEnHistorial() {
 function cargarOrdenesEntradaGuardadas() {
   const ordenesGuardadasStr = localStorage.getItem(LOCAL_STORAGE_ORDENES_ENTRADA_KEY);
   if (ordenesGuardadasStr) {
-    ordenesEntradaGuardadas = JSON.parse(ordenesGuardadasStr);
+    try {
+      const parsedOrdenes = JSON.parse(ordenesGuardadasStr);
+      ordenesEntradaGuardadas = (Array.isArray(parsedOrdenes) ? parsedOrdenes : [])
+        .filter(orden => orden && typeof orden === 'object')
+        .map(normalizeOrdenEntradaRecord)
+        .filter(Boolean);
+      persistOrdenesEntradaGuardadas();
+    } catch (error) {
+      console.error('No se pudieron cargar las órdenes de entrada guardadas.', error);
+      ordenesEntradaGuardadas = [];
+    }
   }
   actualizarListaOrdenesEntradaHistorial();
 }
@@ -3319,17 +4019,27 @@ function getCurrentEntryOrderRecord() {
   }
 
   const orden = ordenesEntradaGuardadas.find(item => item.id === currentLoadedEntryOrderId) || null;
+  if (!orden) {
+    return null;
+  }
+
+  if (!hasLinkedClientAndVehicleSelection()) {
+    return orden;
+  }
+
   return isOrdenEntradaLinkedToSelection(orden) ? orden : null;
 }
 
 function getLatestOrdenEntradaRecordForSelection() {
-  if (!hasSelectedClientAndVehicle()) {
+  if (!hasLinkedClientAndVehicleSelection()) {
     return null;
   }
 
-  return ordenesEntradaGuardadas
+  const matchingOrders = ordenesEntradaGuardadas
     .filter(orden => isOrdenEntradaLinkedToSelection(orden))
-    .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha))[0] || null;
+    .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha));
+
+  return matchingOrders.length === 1 ? matchingOrders[0] : null;
 }
 
 function resolveEntryOrderRecordForSelection() {
@@ -3373,13 +4083,23 @@ function getOrdenWorkflowSnapshot(orden = {}) {
   const salidaCompleta = Boolean(cotizacion?.salida?.fechaSalida && cotizacion?.salida?.recibidoPorCliente && cotizacion?.salida?.firmaClienteSalida);
 
   if (!cotizacion) {
-    if (diagnosticoTieneContenidoGuardado(diagnosticoOrden)) {
+    if (isDiagnosticoRecordReadyForQuote(diagnosticoOrden)) {
       return {
         stage: 'cotizacion',
         title: 'Diagnostico listo para cotizar',
         detail: diagnosticoOrden.trabajo || diagnosticoOrden.diagnosticoInicial || 'Diagnostico consolidado en la orden de trabajo',
         targetTab: 'cotStepServicio',
         actionLabel: 'Cotizar'
+      };
+    }
+
+    if (diagnosticoTieneContenidoGuardado(diagnosticoOrden)) {
+      return {
+        stage: 'diagnostico',
+        title: 'Diagnostico en proceso',
+        detail: diagnosticoOrden.trabajo || diagnosticoOrden.diagnosticoInicial || orden.ordenEntrada?.motivoEntrada || 'Diagnostico parcialmente registrado',
+        targetTab: 'cotStepDiagnostico',
+        actionLabel: 'Continuar'
       };
     }
 
@@ -3464,6 +4184,12 @@ function getOrdenWorkflowSnapshot(orden = {}) {
 }
 
 function openWorkflowVisit(orderId, targetTab = 'cotStepDiagnostico') {
+  if (targetTab === 'cotStepOrden') {
+    entryQueueMode = false;
+  }
+  if (targetTab === 'cotStepDiagnostico') {
+    diagnosticQueueMode = false;
+  }
   cargarOrdenEntradaById(orderId);
   if (targetTab !== 'cotStepOrden') {
     openTab(null, targetTab, null, true);
@@ -3526,6 +4252,313 @@ function renderDashboardQueueList(listId, items, emptyMessage) {
     li.appendChild(action);
     list.appendChild(li);
   });
+}
+
+function getDashboardStageTone(stage = '') {
+  switch (stage) {
+    case 'diagnostico':
+      return 'info';
+    case 'cotizacion':
+      return 'warning';
+    case 'taller':
+      return 'info';
+    case 'cobro':
+      return 'warning';
+    case 'cerrado':
+      return 'success';
+    default:
+      return 'neutral';
+  }
+}
+
+function updateDashboardCountBadge(id, count, options = {}) {
+  const badge = document.getElementById(id);
+  if (!badge) {
+    return;
+  }
+
+  const {
+    zeroLabel = 'Sin pendientes',
+    singularLabel = '1 pendiente',
+    pluralLabel = '{count} pendientes',
+    zeroTone = 'complete',
+    activeTone = 'pending'
+  } = options;
+
+  const label = count <= 0
+    ? zeroLabel
+    : (count === 1 ? singularLabel : pluralLabel.replace('{count}', String(count)));
+
+  badge.className = `dashboard-module-chip is-${count > 0 ? activeTone : zeroTone}`;
+  badge.textContent = label;
+}
+
+function renderDashboardSummaryList(listId, items, emptyStateMarkup) {
+  const list = document.getElementById(listId);
+  if (!list) {
+    return;
+  }
+
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = `<li>${emptyStateMarkup}</li>`;
+    return;
+  }
+
+  items.slice(0, 5).forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'dashboard-summary-item';
+
+    const copy = document.createElement('div');
+    copy.className = 'dashboard-summary-copy';
+    copy.innerHTML = `
+      <strong>${item.title}</strong>
+      <p>${item.detail}</p>
+      ${item.meta ? `<p class="dashboard-summary-meta">${item.meta}</p>` : ''}
+      <div class="dashboard-summary-badges">${(item.badges || []).map(badge => `<span class="${getBadgeClass(badge.tone)}">${badge.label}</span>`).join('')}</div>
+    `;
+
+    li.appendChild(copy);
+
+    if (item.action?.label && typeof item.action?.onClick === 'function') {
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'btn-secondary dashboard-summary-action';
+      action.textContent = item.action.label;
+      action.addEventListener('click', item.action.onClick);
+      li.appendChild(action);
+    }
+
+    list.appendChild(li);
+  });
+}
+
+function renderDashboardOperationalList() {
+  const activeOrders = ordenesEntradaGuardadas
+    .slice()
+    .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha))
+    .map(orden => ({
+      orden,
+      snapshot: getOrdenWorkflowSnapshot(orden),
+      cotizacion: getLatestCotizacionForOrden(orden.id)
+    }))
+    .filter(item => item.snapshot.stage !== 'cerrado');
+
+  updateDashboardCountBadge('dashboardOperationalCountBadge', activeOrders.length, {
+    zeroLabel: 'Sin expedientes',
+    singularLabel: '1 activo',
+    pluralLabel: '{count} activos'
+  });
+
+  const items = activeOrders.map(item => {
+    const clienteNombre = escapeHtml(getStoredClientDisplayName(item.orden.cliente || {}) || 'Cliente sin nombre');
+    const vehiculoLabel = escapeHtml(`${getVehicleFullLabel(item.orden.vehiculo || {})}${item.orden.vehiculo?.placa ? ` (${item.orden.vehiculo.placa})` : ''}`);
+    const operationalStatus = item.cotizacion
+      ? getOperationalStatusMeta(getCotizacionOperationalStatus(item.cotizacion))
+      : { label: 'Sin seguimiento', tone: 'neutral' };
+    const commercialStatus = item.cotizacion
+      ? getCommercialStatusMeta(getCotizacionCommercialStatus(item.cotizacion))
+      : { label: 'Sin cotización', tone: 'neutral' };
+
+    return {
+      title: `${escapeHtml(item.orden.id)} · ${clienteNombre}`,
+      detail: `${vehiculoLabel} · ${escapeHtml(item.orden.ordenEntrada?.motivoEntrada || 'Sin motivo registrado')}`,
+      meta: `Actualizado ${escapeHtml(formatDisplayDateTime(item.orden.updatedAt || item.orden.savedAt || item.orden.fecha))}`,
+      badges: [
+        { label: escapeHtml(item.snapshot.title), tone: getDashboardStageTone(item.snapshot.stage) },
+        { label: escapeHtml(operationalStatus.label), tone: operationalStatus.tone },
+        { label: escapeHtml(commercialStatus.label), tone: commercialStatus.tone }
+      ],
+      action: {
+        label: item.snapshot.actionLabel,
+        onClick: () => {
+          if (item.snapshot.targetTab === 'facturacion') {
+            openWorkflowVisitFacturacion(item.orden.id);
+            return;
+          }
+          openWorkflowVisit(item.orden.id, item.snapshot.targetTab);
+        }
+      }
+    };
+  });
+
+  renderDashboardSummaryList(
+    'dashboardOperationalList',
+    items,
+    buildGuidedEmptyState('Sin expedientes activos', 'Todas las visitas están cerradas o todavía no se ha creado una orden de entrada nueva.', 'Crear expediente', 'data-action="shell-open-tab" data-tab="cotStepCliente"')
+  );
+}
+
+function renderDashboardCommercialList() {
+  const commercialQueue = cotizacionesGuardadas
+    .filter(cotizacion => {
+      const status = getCotizacionCommercialStatus(cotizacion);
+      return status === 'pendiente' || status === 'ampliacion';
+    })
+    .slice()
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  updateDashboardCountBadge('dashboardCommercialCountBadge', commercialQueue.length, {
+    zeroLabel: 'Sin pendientes',
+    singularLabel: '1 pendiente',
+    pluralLabel: '{count} pendientes'
+  });
+
+  const items = commercialQueue.map(cotizacion => {
+    const commercialStatus = getCommercialStatusMeta(getCotizacionCommercialStatus(cotizacion));
+    const operationalStatus = getOperationalStatusMeta(getCotizacionOperationalStatus(cotizacion));
+    const clienteNombre = escapeHtml(obtenerNombreClienteDisplay(cotizacion.cliente || {}) || 'Cliente sin nombre');
+    const vehiculoLabel = escapeHtml(`${getVehicleFullLabel(cotizacion.vehiculo || {})}${cotizacion.vehiculo?.placa ? ` (${cotizacion.vehiculo.placa})` : ''}`);
+
+    return {
+      title: `${escapeHtml(cotizacion.id)} · ${clienteNombre}`,
+      detail: `${vehiculoLabel} · RD$ ${Number(cotizacion.totalFinal || 0).toFixed(2)}`,
+      meta: `${escapeHtml(commercialStatus.label)} · OT ${escapeHtml(cotizacion.ordenEntradaId || 'Sin OT')} · ${escapeHtml(formatDisplayDate(cotizacion.fecha))}`,
+      badges: [
+        { label: escapeHtml(commercialStatus.label), tone: commercialStatus.tone },
+        { label: escapeHtml(operationalStatus.label), tone: operationalStatus.tone }
+      ],
+      action: {
+        label: 'Abrir cotización',
+        onClick: () => cargarCotizacionParaEditar(cotizacion.id)
+      }
+    };
+  });
+
+  renderDashboardSummaryList(
+    'dashboardCommercialList',
+    items,
+    buildGuidedEmptyState('Sin decisiones comerciales pendientes', 'Cuando un diagnóstico necesite cotización o ampliación, aparecerá aquí con acceso directo.', 'Abrir cotización', 'data-action="shell-open-tab" data-tab="cotStepServicio"')
+  );
+}
+
+function buildDashboardCollectionItems() {
+  const readyToInvoice = getCotizacionesPendientesDeFacturar().map(cotizacion => {
+    const approvedTotal = getCotizacionApprovedTotals(cotizacion).totalFinal || cotizacion.totalFinal || 0;
+    const operationalStatus = getOperationalStatusMeta(getCotizacionOperationalStatus(cotizacion));
+    return {
+      priority: 2,
+      title: `${escapeHtml(cotizacion.id)} · ${escapeHtml(obtenerNombreClienteDisplay(cotizacion.cliente || {}) || 'Cliente sin nombre')}`,
+      detail: `${escapeHtml(getVehicleFullLabel(cotizacion.vehiculo || {}))} · lista para facturar por RD$ ${Number(approvedTotal).toFixed(2)}`,
+      meta: `OT ${escapeHtml(cotizacion.ordenEntradaId || 'Sin OT')} · ${escapeHtml(formatDisplayDate(cotizacion.fecha))}`,
+      badges: [
+        { label: 'Lista para facturar', tone: 'success' },
+        { label: escapeHtml(operationalStatus.label), tone: operationalStatus.tone }
+      ],
+      action: {
+        label: 'Facturar',
+        onClick: () => {
+          if (cotizacion.ordenEntradaId) {
+            openWorkflowVisitFacturacion(cotizacion.ordenEntradaId);
+          } else {
+            cargarCotizacionById(cotizacion.id);
+            openTab(null, 'facturacion');
+          }
+        }
+      }
+    };
+  });
+
+  const pendingBalances = facturasGuardadas
+    .map(factura => normalizeFacturaRecord(factura))
+    .filter(factura => factura.saldoPendiente > 0)
+    .sort((a, b) => Number(b.saldoPendiente || 0) - Number(a.saldoPendiente || 0))
+    .map(factura => {
+      const collectionStatus = getCollectionStatusMeta(factura.estadoCobro);
+      return {
+        priority: 1,
+        title: `${escapeHtml(factura.id)} · ${escapeHtml(obtenerNombreClienteDisplay(factura.cliente || {}) || 'Cliente sin nombre')}`,
+        detail: `${escapeHtml(getVehicleFullLabel(factura.vehiculo || {}))} · saldo RD$ ${Number(factura.saldoPendiente || 0).toFixed(2)}`,
+        meta: `${escapeHtml(collectionStatus.label)} · ${escapeHtml(formatDisplayDate(factura.fecha))}`,
+        badges: [
+          { label: escapeHtml(collectionStatus.label), tone: collectionStatus.tone },
+          { label: `Total RD$ ${Number(factura.totalFinal || 0).toFixed(2)}`, tone: 'neutral' }
+        ],
+        action: {
+          label: 'Cobrar',
+          onClick: () => {
+            if (factura.ordenEntradaId) {
+              openWorkflowVisitFacturacion(factura.ordenEntradaId);
+            } else {
+              openTab(null, 'facturacion');
+            }
+          }
+        }
+      };
+    });
+
+  const paidPendingExit = facturasGuardadas
+    .map(factura => normalizeFacturaRecord(factura))
+    .filter(factura => factura.estadoCobro === 'pagada')
+    .map(factura => ({
+      factura,
+      cotizacion: cotizacionesGuardadas.find(cotizacion => cotizacion.id === factura.cotizacionId) || null
+    }))
+    .filter(item => item.cotizacion && item.cotizacion.ordenEntradaId && !isSalidaRecordComplete(item.cotizacion.salida || {}))
+    .map(item => ({
+      priority: 0,
+      title: `${escapeHtml(item.factura.id)} · ${escapeHtml(obtenerNombreClienteDisplay(item.factura.cliente || {}) || 'Cliente sin nombre')}`,
+      detail: `${escapeHtml(getVehicleFullLabel(item.factura.vehiculo || {}))} · cobro completado, falta cierre de salida`,
+      meta: `Cotización ${escapeHtml(item.cotizacion.id)} · ${escapeHtml(formatDisplayDate(item.factura.fecha))}`,
+      badges: [
+        { label: 'Pagada', tone: 'success' },
+        { label: 'Pendiente de entrega', tone: 'info' }
+      ],
+      action: {
+        label: 'Cerrar salida',
+        onClick: () => openWorkflowVisit(item.cotizacion.ordenEntradaId, 'cotStepSalida')
+      }
+    }));
+
+  return [...paidPendingExit, ...pendingBalances, ...readyToInvoice].sort((a, b) => a.priority - b.priority);
+}
+
+function renderDashboardCollectionList() {
+  const items = buildDashboardCollectionItems();
+
+  updateDashboardCountBadge('dashboardCollectionCountBadge', items.length, {
+    zeroLabel: 'Sin acciones',
+    singularLabel: '1 acción',
+    pluralLabel: '{count} acciones'
+  });
+
+  renderDashboardSummaryList(
+    'dashboardCollectionList',
+    items,
+    buildGuidedEmptyState('Sin cobros ni cierres pendientes', 'Cuando una cotización esté lista para facturar, una factura tenga saldo o una entrega no se haya cerrado, aparecerá aquí.', 'Ir a cobros', 'data-action="shell-open-tab" data-tab="facturacion"')
+  );
+}
+
+function renderDashboardPostventaList() {
+  const reminders = buildPostventaReminders()
+    .filter(reminder => reminder.estado !== 'atendido')
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  updateDashboardCountBadge('dashboardPostventaCountBadge', reminders.length, {
+    zeroLabel: 'Sin pendientes',
+    singularLabel: '1 recordatorio',
+    pluralLabel: '{count} recordatorios'
+  });
+
+  const items = reminders.map(reminder => ({
+    title: `${escapeHtml(reminder.type === 'garantia' ? 'Garantía' : 'Mantenimiento')} · ${escapeHtml(reminder.clienteNombre)}`,
+    detail: `${escapeHtml(reminder.vehiculoLabel)} · vence ${escapeHtml(formatDisplayDate(reminder.dueDate))}`,
+    meta: `${escapeHtml(reminder.detail)} · entrega ${escapeHtml(formatDisplayDate(reminder.deliveryDate))}`,
+    badges: [
+      { label: reminder.type === 'garantia' ? 'Garantía' : 'Mantenimiento', tone: reminder.type === 'garantia' ? 'info' : 'neutral' },
+      { label: escapeHtml(getReminderLabel(reminder)), tone: getReminderTone(reminder) }
+    ],
+    action: {
+      label: 'Abrir postventa',
+      onClick: () => openTab(null, 'gestionYCatalogos', 'postventaTab', true)
+    }
+  }));
+
+  renderDashboardSummaryList(
+    'dashboardPostventaList',
+    items,
+    buildGuidedEmptyState('Sin recordatorios activos', 'Las garantías y mantenimientos programados aparecerán aquí cuando una entrega cierre el flujo.', 'Abrir postventa', 'data-action="shell-open-tab" data-tab="gestionYCatalogos" data-subtab="postventaTab"')
+  );
 }
 
 function renderDashboardVisitQueues() {
@@ -3651,14 +4684,17 @@ function filtrarOrdenesEntrada() {
   actualizarListaOrdenesEntradaHistorial();
 }
 
-function cargarOrdenEntradaById(idOrdenEntrada) {
+function cargarOrdenEntradaById(idOrdenEntrada, options = {}) {
+  const { preserveCurrentTab = false, targetTab = 'cotStepOrden' } = options;
   const orden = ordenesEntradaGuardadas.find(item => item.id === idOrdenEntrada);
   if (!orden) {
     alert('No se pudo encontrar la orden de entrada seleccionada.');
     return;
   }
 
-  openTab(null, 'cotStepCliente');
+  if (!preserveCurrentTab && targetTab === 'cotStepOrden') {
+    openTab(null, 'cotStepCliente');
+  }
   document.getElementById('fecha').value = orden.fecha || document.getElementById('fecha').value;
   document.getElementById('tipoIdentificacion').value = orden.cliente?.tipoIdentificacion || 'cedula';
   mostrarOcultarCampos();
@@ -3696,9 +4732,13 @@ function cargarOrdenEntradaById(idOrdenEntrada) {
   renderOrdenEntradaContext();
   renderDiagnosticModuleContext();
   renderServicioContext();
+  syncEntryClientVehicleSelectors();
   persistModuleDraft();
   updateModuleCompletionIndicators();
-  openTab(null, 'cotStepOrden', null, true);
+
+  if (!preserveCurrentTab && targetTab) {
+    openTab(null, targetTab, null, true);
+  }
 }
 
 function escapeHtml(value = '') {
@@ -3986,6 +5026,7 @@ function eliminarOrdenEntradaHistorial(idOrdenEntrada) {
       if (currentLoadedEntryOrderId === idOrdenEntrada) {
         currentLoadedEntryOrderId = null;
         persistModuleDraft();
+        syncEntryClientVehicleSelectors();
       }
       persistOrdenesEntradaGuardadas();
       actualizarListaOrdenesEntradaHistorial();
@@ -4528,6 +5569,16 @@ function imprimirDiagnosticoPDF() {
   printWindowWhenReady(win);
 }
 
+function guardarEImprimirDiagnostico() {
+  if (!guardarDiagnostico({ silent: true })) {
+    return false;
+  }
+
+  imprimirDiagnosticoPDF();
+  notifySuccess('Diagnóstico listo para impresión', 'Se guardó el diagnóstico activo y se abrió la vista de impresión.', { kicker: 'Diagnóstico' });
+  return true;
+}
+
 function setupValidationListeners() {
   const inputs = document.querySelectorAll('input[required], select[required], textarea[required]');
   inputs.forEach(input => {
@@ -4640,11 +5691,11 @@ function hasValidRequiredFields(sectionId) {
 }
 
 function isClienteModuleComplete() {
-  return Boolean(currentLoadedClientId) && hasValidFieldValues(['identificacion', 'nombreCliente']);
+  return hasClientContextData();
 }
 
 function isVehiculoModuleComplete() {
-  return Boolean(currentLoadedClientId && currentLoadedVehicleId) && hasValidFieldValues(['vehiculoModelo', 'vehiculoAnio', 'vehiculoCombustible', 'vehiculoChasis', 'vehiculoPlaca']);
+  return hasVehicleContextData();
 }
 
 function isOrdenModuleComplete() {
@@ -4827,12 +5878,13 @@ function updateDashboardOverviewStats() {
     snapshot: getOrdenWorkflowSnapshot(orden)
   }));
   const activeVisits = snapshots.filter(item => item.snapshot.stage !== 'cerrado').length;
-  const readyBilling = snapshots.filter(item => item.snapshot.stage === 'cobro').length;
-  const readyDelivery = cotizacionesGuardadas.filter(cotizacion => {
-    const operationalStatus = normalizeSeguimientoStatus(cotizacion?.seguimiento?.estatusTrabajo || 'en_espera');
-    return operationalStatus === 'listo_para_entrega' || operationalStatus === 'entregado';
+  const pendingApproval = cotizacionesGuardadas.filter(cotizacion => {
+    const status = getCotizacionCommercialStatus(cotizacion);
+    return status === 'pendiente' || status === 'ampliacion';
   }).length;
+  const readyBilling = snapshots.filter(item => item.snapshot.stage === 'cobro').length;
   const pendingCollectionTotal = facturasGuardadas.reduce((sum, factura) => sum + Number(normalizeFacturaRecord(factura).saldoPendiente || 0), 0);
+  const activePostventa = buildPostventaReminders().filter(reminder => reminder.estado !== 'atendido').length;
   const alertsCount = buildAutomaticAlerts().length;
 
   const assignments = [
@@ -4840,21 +5892,26 @@ function updateDashboardOverviewStats() {
     ['dashboardMobileVisitsCount', String(activeVisits)],
     ['sidebarActiveVisitsCount', String(activeVisits)],
     ['headerActiveVisitsCount', String(activeVisits)],
+    ['dashboardPendingApprovalCount', String(pendingApproval)],
+    ['dashboardMobilePendingApprovalCount', String(pendingApproval)],
     ['dashboardReadyBillingCount', String(readyBilling)],
     ['dashboardMobileReadyBillingCount', String(readyBilling)],
     ['sidebarReadyBillingCount', String(readyBilling)],
-    ['dashboardReadyDeliveryCount', String(readyDelivery)],
-    ['dashboardMobileReadyDeliveryCount', String(readyDelivery)],
     ['dashboardPendingCollectionTotal', `RD$ ${pendingCollectionTotal.toFixed(2)}`],
+    ['dashboardMobilePendingCollectionTotal', `RD$ ${pendingCollectionTotal.toFixed(2)}`],
+    ['dashboardPostventaCount', String(activePostventa)],
+    ['dashboardMobilePostventaCount', String(activePostventa)],
     ['headerPendingCollectionTotal', `RD$ ${pendingCollectionTotal.toFixed(2)}`],
-    ['headerAlertsCount', String(alertsCount)],
-    ['dashboardMobileAlertsCount', String(alertsCount)]
+    ['headerAlertsCount', String(alertsCount)]
   ];
 
   assignments.forEach(([id, value]) => {
     const element = document.getElementById(id);
     if (element) {
       element.textContent = value;
+      if ((id === 'dashboardPendingCollectionTotal' || id === 'dashboardMobilePendingCollectionTotal') && typeof value === 'string' && value.startsWith('RD$')) {
+        element.classList.add('is-compact');
+      }
     }
   });
 
@@ -5004,12 +6061,18 @@ function loadModuleDraft() {
     }
 
     if (draft.servicio) {
-      document.getElementById('selectServicioCatalogoNuevaCotizacion').value = draft.servicio.servicioCatalogo || '';
+      const draftServicioSelect = document.getElementById('selectServicioCatalogoNuevaCotizacion');
+      if (draftServicioSelect) {
+        draftServicioSelect.value = draft.servicio.servicioCatalogo || '';
+      }
       normalizeServicioCotizacionState(draft.servicio);
     }
 
     if (draft.piezas) {
-      document.getElementById('selectPiezaCatalogoNuevaCotizacion').value = draft.piezas.piezaCatalogo || '';
+      const draftPiezaSelect = document.getElementById('selectPiezaCatalogoNuevaCotizacion');
+      if (draftPiezaSelect) {
+        draftPiezaSelect.value = draft.piezas.piezaCatalogo || '';
+      }
       currentCotizacionApprovalConfig = normalizeCotizacionApprovalConfig(draft.piezas.approval || {}, draft.piezas.items || [], draft.piezas.estadoCotizacion || 'pendiente');
       setCotizacionStatusUI(draft.piezas.estadoCotizacion || currentCotizacionApprovalConfig.tipoAprobacion || 'pendiente');
       piezasActivas = [];
@@ -5069,72 +6132,11 @@ function setupModuleStatusListeners() {
 }
 
 function updateDashboard() {
-  const clientesList = document.getElementById('clientesRecientesList');
-  const cotizacionesPendientesList = document.getElementById('cotizacionesPendientesList');
-  const cotizacionesAprobadasList = document.getElementById('cotizacionesAprobadasList');
-  const facturasRecientesList = document.getElementById('facturasRecientesList');
-
-  clientesList.innerHTML = '';
-  cotizacionesPendientesList.innerHTML = '';
-  cotizacionesAprobadasList.innerHTML = '';
-  if (facturasRecientesList) {
-    facturasRecientesList.innerHTML = '';
-  }
-
-  if (clientesGuardados.length === 0) {
-    clientesList.innerHTML = `<li>${buildGuidedEmptyState('Sin clientes recientes', 'Crea un expediente nuevo para empezar a cargar clientes y vehículos en el taller.', 'Crear expediente', 'data-action="shell-open-tab" data-tab="cotStepCliente"')}</li>`;
-  } else {
-    const recentClients = clientesGuardados.slice().sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified)).slice(0, 5);
-    recentClients.forEach(cliente => {
-      const li = document.createElement('li');
-      const displayNombre = cliente.tipo === 'rnc' && cliente.empresa ? cliente.empresa : cliente.nombre;
-      li.innerHTML = `<span>${displayNombre}</span> <a href="#" data-action="clientes-cotizar-reciente" data-client-id="${getClientRecordId(cliente)}">Cotizar</a>`;
-      clientesList.appendChild(li);
-    });
-  }
-
-  const pendientes = cotizacionesGuardadas.filter(cot => {
-    const status = getCotizacionCommercialStatus(cot);
-    return status === 'pendiente' || status === 'ampliacion';
-  }).slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
-  if (pendientes.length === 0) {
-    cotizacionesPendientesList.innerHTML = `<li>${buildGuidedEmptyState('Sin cotizaciones pendientes', 'Cuando un diagnóstico quede listo para aprobación, aparecerá aquí con acceso directo.', 'Abrir diagnóstico', 'data-action="shell-open-tab" data-tab="cotStepDiagnostico"')}</li>`;
-  } else {
-    pendientes.forEach(cot => {
-      const nombreCliente = cot.cliente.tipoIdentificacion === 'rnc' && cot.cliente.nombreEmpresa ? cot.cliente.nombreEmpresa : cot.cliente.nombreCliente;
-      const li = document.createElement('li');
-      li.innerHTML = `<span>${nombreCliente} (${cot.vehiculo.placa})</span> <a href="#" data-action="shell-abrir-cotizacion-edicion" data-cotizacion-id="${cot.id}">Ver</a>`;
-      cotizacionesPendientesList.appendChild(li);
-    });
-  }
-
-  const aprobadas = cotizacionesGuardadas.filter(cot => isCommercialStatusInvoiceable(getCotizacionCommercialStatus(cot))).slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
-  if (aprobadas.length === 0) {
-    cotizacionesAprobadasList.innerHTML = `<li>${buildGuidedEmptyState('Sin aprobaciones recientes', 'Las cotizaciones aprobadas aparecerán aquí para ayudarte a pasar rápido a cobro o entrega.', 'Ir a cotización', 'data-action="shell-open-tab" data-tab="cotStepServicio"')}</li>`;
-  } else {
-    aprobadas.forEach(cot => {
-      const nombreCliente = cot.cliente.tipoIdentificacion === 'rnc' && cot.cliente.nombreEmpresa ? cot.cliente.nombreEmpresa : cot.cliente.nombreCliente;
-      const li = document.createElement('li');
-      li.innerHTML = `<span>${nombreCliente} (${cot.vehiculo.placa})</span> <a href="#" data-action="shell-abrir-cotizacion-edicion" data-cotizacion-id="${cot.id}">Ver</a>`;
-      cotizacionesAprobadasList.appendChild(li);
-    });
-  }
-
-  if (facturasRecientesList) {
-    const facturasRecientes = facturasGuardadas.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
-    if (facturasRecientes.length === 0) {
-      facturasRecientesList.innerHTML = `<li>${buildGuidedEmptyState('Sin facturas emitidas', 'Cuando una visita esté lista para cobro, podrás emitir y revisar sus facturas desde este panel.', 'Ir a cobros', 'data-action="shell-open-tab" data-tab="facturacion"')}</li>`;
-    } else {
-      facturasRecientes.forEach(factura => {
-        const nombreCliente = factura.cliente.tipoIdentificacion === 'rnc' && factura.cliente.nombreEmpresa ? factura.cliente.nombreEmpresa : factura.cliente.nombreCliente;
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${factura.id} · ${nombreCliente}</span> <a href="#" data-action="facturacion-imprimir" data-factura-id="${factura.id}">Imprimir</a>`;
-        facturasRecientesList.appendChild(li);
-      });
-    }
-  }
-
   renderDashboardVisitQueues();
+  renderDashboardOperationalList();
+  renderDashboardCommercialList();
+  renderDashboardCollectionList();
+  renderDashboardPostventaList();
   renderDashboardAlerts();
   updateDashboardOverviewStats();
   updateDashboardModuleSummary();
@@ -5281,8 +6283,8 @@ function crearReingresoGarantiaDesdeFactura(facturaId, cotizacionId = '') {
   const ordenOriginal = cotizacion?.ordenEntradaId ? (ordenesEntradaGuardadas.find(item => item.id === cotizacion.ordenEntradaId) || null) : null;
   const now = new Date().toISOString();
   const deliveryDate = getCotizacionDeliveryDate(cotizacion || {});
-  const nuevaOrden = {
-    id: `ENT-${Date.now()}`,
+  const nuevaOrden = normalizeOrdenEntradaRecord({
+    id: generarEntidadId('ENT'),
     fecha: getCurrentDateISO(),
     cliente: { ...(factura.cliente || {}) },
     vehiculo: { ...(factura.vehiculo || {}) },
@@ -5300,7 +6302,7 @@ function crearReingresoGarantiaDesdeFactura(facturaId, cotizacionId = '') {
     },
     savedAt: now,
     updatedAt: now
-  };
+  });
 
   ordenesEntradaGuardadas.push(nuevaOrden);
   persistOrdenesEntradaGuardadas();
@@ -6465,6 +7467,126 @@ function generarEntidadId(prefix) {
   return `${prefix}-${Date.now()}-${randomChunk}`;
 }
 
+function getCurrentDocumentAssociation() {
+  return {
+    clienteId: currentLoadedClientId || '',
+    clienteIdentificacion: document.getElementById('identificacion')?.value.trim() || '',
+    vehiculoId: currentLoadedVehicleId || '',
+    vehiculoChasis: document.getElementById('vehiculoChasis')?.value.trim() || '',
+    vehiculoPlaca: document.getElementById('vehiculoPlaca')?.value.trim() || '',
+    ordenEntradaId: currentLoadedEntryOrderId || '',
+    cotizacionId: currentLoadedCotizacionId || ''
+  };
+}
+
+function buildDocumentAssociationMeta(existingMeta = {}, overrides = {}, useCurrentFallback = false) {
+  const currentAssociation = useCurrentFallback ? getCurrentDocumentAssociation() : {};
+  return {
+    clienteId: overrides.clienteId ?? existingMeta.clienteId ?? currentAssociation.clienteId,
+    clienteIdentificacion: overrides.clienteIdentificacion ?? existingMeta.clienteIdentificacion ?? currentAssociation.clienteIdentificacion,
+    vehiculoId: overrides.vehiculoId ?? existingMeta.vehiculoId ?? currentAssociation.vehiculoId,
+    vehiculoChasis: overrides.vehiculoChasis ?? existingMeta.vehiculoChasis ?? currentAssociation.vehiculoChasis,
+    vehiculoPlaca: overrides.vehiculoPlaca ?? existingMeta.vehiculoPlaca ?? currentAssociation.vehiculoPlaca,
+    ordenEntradaId: overrides.ordenEntradaId ?? existingMeta.ordenEntradaId ?? currentAssociation.ordenEntradaId,
+    cotizacionId: overrides.cotizacionId ?? existingMeta.cotizacionId ?? currentAssociation.cotizacionId
+  };
+}
+
+function normalizeDiagnosticoRecord(diagnostico = {}, options = {}) {
+  if (!diagnostico || typeof diagnostico !== 'object') {
+    return null;
+  }
+
+  const { ordenEntradaId = '', cotizacionId = '', useCurrentFallback = false } = options;
+  const diagnosticoBase = { ...diagnostico };
+  const association = buildDocumentAssociationMeta(diagnosticoBase, {
+    ordenEntradaId,
+    cotizacionId
+  }, useCurrentFallback);
+
+  return {
+    ...diagnosticoBase,
+    id: diagnosticoBase.id || generarEntidadId('DIA'),
+    ...association,
+    partes: mezclarEstadoDiagnostico(diagnosticoBase.partes || {})
+  };
+}
+
+function normalizeSalidaRecord(salida = {}, options = {}) {
+  if (!salida || typeof salida !== 'object') {
+    return null;
+  }
+
+  const { ordenEntradaId = '', cotizacionId = '', useCurrentFallback = false } = options;
+  const salidaBase = { ...salida };
+  const association = buildDocumentAssociationMeta(salidaBase, {
+    ordenEntradaId,
+    cotizacionId
+  }, useCurrentFallback);
+
+  return {
+    ...salidaBase,
+    id: salidaBase.id || generarEntidadId('SAL'),
+    ...association
+  };
+}
+
+function normalizeOrdenEntradaRecord(record = {}) {
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  const entryId = record.id || generarEntidadId('ENT');
+  const association = buildDocumentAssociationMeta(record, {
+    clienteId: record.cliente?.clientId || record.clienteId || '',
+    clienteIdentificacion: record.cliente?.identificacion || record.clienteIdentificacion || '',
+    vehiculoId: record.vehiculo?.vehicleId || record.vehiculoId || '',
+    vehiculoChasis: record.vehiculo?.chasis || record.vehiculoChasis || '',
+    vehiculoPlaca: record.vehiculo?.placa || record.vehiculoPlaca || '',
+    ordenEntradaId: entryId,
+    cotizacionId: record.cotizacionId || ''
+  });
+
+  return {
+    ...record,
+    id: entryId,
+    ...association,
+    diagnostico: record.diagnostico ? normalizeDiagnosticoRecord(record.diagnostico, { ordenEntradaId: entryId, cotizacionId: record.cotizacionId || record.diagnostico?.cotizacionId || '' }) : null
+  };
+}
+
+function normalizeCotizacionRecord(record = {}) {
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  const cotizacionId = record.id || generarEntidadId('COT');
+  const entryId = record.ordenEntradaId || record.ordenEntrada?.id || record.diagnostico?.ordenEntradaId || record.salida?.ordenEntradaId || '';
+  const association = buildDocumentAssociationMeta(record, {
+    clienteId: record.cliente?.clientId || record.clienteId || '',
+    clienteIdentificacion: record.cliente?.identificacion || record.clienteIdentificacion || '',
+    vehiculoId: record.vehiculo?.vehicleId || record.vehiculoId || '',
+    vehiculoChasis: record.vehiculo?.chasis || record.vehiculoChasis || '',
+    vehiculoPlaca: record.vehiculo?.placa || record.vehiculoPlaca || '',
+    ordenEntradaId: entryId,
+    cotizacionId
+  });
+
+  const diagnostico = record.diagnostico ? normalizeDiagnosticoRecord(record.diagnostico, { ordenEntradaId: entryId, cotizacionId }) : null;
+  const salida = record.salida ? normalizeSalidaRecord(record.salida, { ordenEntradaId: entryId, cotizacionId }) : null;
+
+  return {
+    ...record,
+    id: cotizacionId,
+    ordenEntradaId: entryId,
+    ...association,
+    diagnosticoId: diagnostico?.id || record.diagnosticoId || '',
+    salidaId: salida?.id || record.salidaId || '',
+    diagnostico,
+    salida
+  };
+}
+
 function getClientRecordId(cliente = {}) {
   return cliente.clienteId || cliente.id || '';
 }
@@ -6582,21 +7704,75 @@ function getClienteRelacionadoFacturas(cliente = {}) {
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 }
 
-function getClienteHistorial(cliente = {}) {
-  const cotizaciones = getClienteRelacionadoCotizaciones(cliente).map(cotizacion => ({
-    fecha: cotizacion.fecha,
-    tipo: 'Cotización',
-    detalle: `${cotizacion.id} · ${cotizacion.vehiculo?.modelo || 'Vehículo'} (${cotizacion.vehiculo?.placa || 'Sin placa'})`,
-    accion: `<button type="button" class="btn-secondary" data-action="clientes-abrir-cotizacion" data-cotizacion-id="${cotizacion.id}">Abrir</button>`
-  }));
-  const facturas = getClienteRelacionadoFacturas(cliente).map(factura => ({
-    fecha: factura.fecha,
-    tipo: 'Factura',
-    detalle: `${factura.id} · ${factura.vehiculo?.modelo || 'Vehículo'} (${factura.vehiculo?.placa || 'Sin placa'})`,
-    accion: `<button type="button" class="btn-primary" data-action="facturacion-imprimir" data-factura-id="${factura.id}">Imprimir</button>`
-  }));
+function getClienteOrdenesRelacionadas(cliente = {}) {
+  const clientId = getClientRecordId(cliente);
 
-  return [...cotizaciones, ...facturas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  return ordenesEntradaGuardadas
+    .filter(orden => orden.cliente?.clientId === clientId || (cliente.id && orden.cliente?.identificacion === cliente.id))
+    .sort((a, b) => new Date(b.updatedAt || b.savedAt || b.fecha) - new Date(a.updatedAt || a.savedAt || a.fecha));
+}
+
+function getClienteExpedientes(cliente = {}) {
+  return getClienteOrdenesRelacionadas(cliente).map(orden => {
+    const cotizacion = getCotizacionForOrderId(orden.id);
+    const facturaBase = cotizacion ? getFacturaByCotizacionId(cotizacion.id) : null;
+    const factura = facturaBase ? normalizeFacturaRecord(facturaBase) : null;
+    const salida = cotizacion?.salida ? normalizeSalidaRecord(cotizacion.salida, { ordenEntradaId: orden.id, cotizacionId: cotizacion.id }) : null;
+
+    return {
+      id: orden.id,
+      orden,
+      cotizacion,
+      factura,
+      salida,
+      fecha: orden.updatedAt || orden.savedAt || orden.fecha || cotizacion?.fecha || factura?.fecha || ''
+    };
+  }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+}
+
+function getClienteHistorial(cliente = {}) {
+  return getClienteExpedientes(cliente)
+    .flatMap(expediente => {
+      const orden = expediente.orden;
+      const cotizacion = expediente.cotizacion;
+      const factura = expediente.factura;
+      const salida = expediente.salida;
+      const historial = [
+        {
+          fecha: orden.updatedAt || orden.savedAt || orden.fecha,
+          tipo: salida?.id ? 'Entrada / salida' : 'Orden de entrada',
+          detalle: `${orden.id} · ${orden.ordenEntrada?.motivoEntrada || 'Sin motivo registrado'} · ${orden.vehiculo?.placa || 'Sin placa'}`,
+          previewType: 'expediente',
+          previewId: orden.id,
+          printAction: `<button type="button" class="btn-secondary" data-action="shell-imprimir-ot" data-orden-id="${orden.id}">Imprimir OT</button>`
+        }
+      ];
+
+      if (cotizacion) {
+        historial.push({
+          fecha: cotizacion.fecha,
+          tipo: 'Cotización',
+          detalle: `${cotizacion.id} · ${getCommercialStatusMeta(getCotizacionCommercialStatus(cotizacion)).label} · RD$ ${Number(cotizacion.totalFinal || 0).toFixed(2)}`,
+          previewType: 'cotizacion',
+          previewId: cotizacion.id,
+          printAction: `<button type="button" class="btn-secondary" data-action="clientes-imprimir-cotizacion" data-cotizacion-id="${cotizacion.id}">Imprimir</button>`
+        });
+      }
+
+      if (factura?.id) {
+        historial.push({
+          fecha: factura.fecha,
+          tipo: 'Factura',
+          detalle: `${factura.id} · ${getCollectionStatusMeta(factura.estadoCobro).label} · RD$ ${Number(factura.totalFinal || 0).toFixed(2)}`,
+          previewType: 'factura',
+          previewId: factura.id,
+          printAction: `<button type="button" class="btn-secondary" data-action="facturacion-imprimir" data-factura-id="${factura.id}">Imprimir</button>`
+        });
+      }
+
+      return historial;
+    })
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 }
 
 function isVehicleRecordMatch(recordVehicle = {}, targetVehicle = {}, targetVehicleId = '') {
@@ -6642,13 +7818,13 @@ function getVehiculoHistorialDetalle(cliente = {}, vehiculo = null) {
         ? 'Reingreso por garantía'
         : (ordenes.length > 1 && orden.id !== ordenes[ordenes.length - 1].id ? 'Reingreso / OT' : 'Orden de entrada'),
       detalle: `${orden.id} · ${orden.ordenEntrada?.motivoEntrada || 'Sin motivo'} · ${orden.ordenEntrada?.millajeEntrada || 'Sin millaje'} km`,
-      accion: `<button type="button" class="btn-secondary" data-action="shell-abrir-ot" data-orden-id="${orden.id}">Abrir OT</button>`
+      accion: `<button type="button" class="btn-secondary" data-action="shell-abrir-ot" data-orden-id="${orden.id}">Abrir OT</button><button type="button" class="btn-primary" data-action="shell-imprimir-ot" data-orden-id="${orden.id}">Imprimir</button>`
     })),
     ...cotizaciones.map(cotizacion => ({
       fecha: cotizacion.fecha,
       tipo: 'Cotización',
       detalle: `${cotizacion.id} · ${getCommercialStatusMeta(getCotizacionCommercialStatus(cotizacion)).label} · RD$ ${Number(cotizacion.totalFinal || 0).toFixed(2)}`,
-      accion: `<button type="button" class="btn-secondary" data-action="clientes-abrir-cotizacion" data-cotizacion-id="${cotizacion.id}">Abrir cotización</button>`
+      accion: `<button type="button" class="btn-secondary" data-action="clientes-abrir-cotizacion" data-cotizacion-id="${cotizacion.id}">Abrir cotización</button><button type="button" class="btn-primary" data-action="clientes-imprimir-cotizacion" data-cotizacion-id="${cotizacion.id}">Imprimir</button>`
     })),
     ...facturas.map(factura => ({
       fecha: factura.fecha,
@@ -6668,6 +7844,424 @@ function getVehiculoHistorialDetalle(cliente = {}, vehiculo = null) {
     totalCobrado: facturas.reduce((sum, factura) => sum + Number(factura.totalPagado || 0), 0),
     saldoPendiente: facturas.reduce((sum, factura) => sum + Number(factura.saldoPendiente || 0), 0)
   };
+}
+
+function getClienteWorkspaceData(cliente = {}) {
+  const expedientes = getClienteExpedientes(cliente);
+  const vehiculos = Array.isArray(cliente.vehiculos) ? cliente.vehiculos : [];
+
+  return {
+    vehiculos,
+    expedientes,
+    cotizaciones: expedientes.filter(expediente => expediente.cotizacion),
+    facturas: expedientes.filter(expediente => expediente.factura?.id),
+    historial: getClienteHistorial(cliente)
+  };
+}
+
+function getClienteWorkspaceSectionOptions(data) {
+  return [
+    { id: 'historial', label: 'Historial', meta: `${data.historial.length} movimientos` },
+    { id: 'vehiculos', label: 'Vehículos', meta: `${data.vehiculos.length} registrados` },
+    { id: 'entradas-salidas', label: 'Entradas / Salidas', meta: `${data.expedientes.length} expedientes` },
+    { id: 'cotizaciones', label: 'Cotizaciones', meta: `${data.cotizaciones.length} documentos` },
+    { id: 'facturas', label: 'Facturas', meta: `${data.facturas.length} documentos` },
+    { id: 'editar', label: 'Editar cliente', meta: 'Modal y datos base' }
+  ];
+}
+
+function getClienteWorkspaceFallbackPreview(section, cliente, data) {
+  switch (section) {
+    case 'vehiculos':
+      return data.vehiculos[0]
+        ? { type: 'vehiculo', id: getVehicleRecordId(data.vehiculos[0]) }
+        : { type: 'cliente', id: getClientRecordId(cliente) };
+    case 'entradas-salidas':
+      return data.expedientes[0]
+        ? { type: 'expediente', id: data.expedientes[0].orden.id }
+        : { type: 'cliente', id: getClientRecordId(cliente) };
+    case 'cotizaciones':
+      return data.cotizaciones[0]
+        ? { type: 'cotizacion', id: data.cotizaciones[0].cotizacion.id }
+        : { type: 'cliente', id: getClientRecordId(cliente) };
+    case 'facturas':
+      return data.facturas[0]
+        ? { type: 'factura', id: data.facturas[0].factura.id }
+        : { type: 'cliente', id: getClientRecordId(cliente) };
+    case 'historial': {
+      const primerMovimiento = data.historial[0];
+      return primerMovimiento
+        ? { type: primerMovimiento.previewType, id: primerMovimiento.previewId }
+        : { type: 'cliente', id: getClientRecordId(cliente) };
+    }
+    default:
+      return { type: 'cliente', id: getClientRecordId(cliente) };
+  }
+}
+
+function resolveClienteWorkspacePreview(cliente = {}, data = {}) {
+  const previewType = clienteWorkspacePreview?.type || '';
+  const previewId = clienteWorkspacePreview?.id || '';
+
+  if (previewType === 'vehiculo') {
+    const vehiculo = data.vehiculos.find(item => getVehicleRecordId(item) === previewId);
+    if (vehiculo) {
+      return { type: 'vehiculo', record: vehiculo };
+    }
+  }
+
+  if (previewType === 'expediente') {
+    const expediente = data.expedientes.find(item => item.orden.id === previewId);
+    if (expediente) {
+      return { type: 'expediente', record: expediente };
+    }
+  }
+
+  if (previewType === 'cotizacion') {
+    const expediente = data.cotizaciones.find(item => item.cotizacion.id === previewId);
+    if (expediente) {
+      return { type: 'cotizacion', record: expediente };
+    }
+  }
+
+  if (previewType === 'factura') {
+    const expediente = data.facturas.find(item => item.factura.id === previewId);
+    if (expediente) {
+      return { type: 'factura', record: expediente };
+    }
+  }
+
+  if (previewType === 'cliente' && getClientRecordId(cliente)) {
+    return { type: 'cliente', record: cliente };
+  }
+
+  const fallback = getClienteWorkspaceFallbackPreview(clienteWorkspaceSection, cliente, data);
+  clienteWorkspacePreview = fallback;
+  return resolveClienteWorkspacePreview(cliente, data);
+}
+
+function buildClienteWorkspacePreviewActions(type, recordId, extraActions = '') {
+  const previewButton = `<button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="${type}" data-record-id="${recordId}">Previsualizar</button>`;
+  return `<div class="client-item-actions">${previewButton}${extraActions}</div>`;
+}
+
+function buildClienteWorkspaceClientePreview(cliente, data) {
+  const displayNombre = escapeHtml(getClientDisplayName(cliente) || 'Cliente sin nombre');
+  const ultimoExpediente = data.expedientes[0] || null;
+
+  return `
+    <article class="client-preview-card client-preview-card-hero">
+      <p class="entry-summary-kicker">Cliente activo</p>
+      <h3>${displayNombre}</h3>
+      <p class="text-tip">ID interno ${escapeHtml(getClientRecordId(cliente))} · ${escapeHtml(cliente.id || 'Sin identificación')} · ${escapeHtml(cliente.telefono || 'Sin teléfono')}</p>
+      <div class="client-preview-stat-grid">
+        <div class="client-preview-stat"><span>Vehículos</span><strong>${data.vehiculos.length}</strong></div>
+        <div class="client-preview-stat"><span>Expedientes</span><strong>${data.expedientes.length}</strong></div>
+        <div class="client-preview-stat"><span>Cotizaciones</span><strong>${data.cotizaciones.length}</strong></div>
+        <div class="client-preview-stat"><span>Facturas</span><strong>${data.facturas.length}</strong></div>
+      </div>
+      <div class="client-preview-meta-grid">
+        <p><strong>WhatsApp:</strong> ${escapeHtml(cliente.whatsapp || 'N/D')}</p>
+        <p><strong>Email:</strong> ${escapeHtml(cliente.email || 'N/D')}</p>
+        <p><strong>Última actualización:</strong> ${formatDisplayDateTime(cliente.lastModified)}</p>
+        <p><strong>Último expediente:</strong> ${escapeHtml(ultimoExpediente?.orden?.id || 'Sin expedientes')}</p>
+      </div>
+    </article>
+  `;
+}
+
+function buildClienteWorkspaceVehiculoPreview(cliente, vehiculo) {
+  const historialVehiculo = getVehiculoHistorialDetalle(cliente, vehiculo);
+  return `
+    <article class="client-preview-card client-preview-card-hero">
+      <p class="entry-summary-kicker">Vehículo seleccionado</p>
+      <h3>${escapeHtml(getVehicleFullLabel(vehiculo))}</h3>
+      <p class="text-tip">${escapeHtml(vehiculo.placa || 'Sin placa')} · ${escapeHtml(vehiculo.chasis || 'Sin chasis')} · ${escapeHtml(vehiculo.anio || 'Año N/D')}</p>
+      <div class="client-preview-stat-grid">
+        <div class="client-preview-stat"><span>OT</span><strong>${historialVehiculo.ordenes.length}</strong></div>
+        <div class="client-preview-stat"><span>Reingresos</span><strong>${historialVehiculo.reingresos}</strong></div>
+        <div class="client-preview-stat"><span>Cotizaciones</span><strong>${historialVehiculo.cotizaciones.length}</strong></div>
+        <div class="client-preview-stat"><span>Facturas</span><strong>${historialVehiculo.facturas.length}</strong></div>
+      </div>
+      <div class="client-preview-meta-grid">
+        <p><strong>Marca:</strong> ${escapeHtml(vehiculo.marca || 'N/D')}</p>
+        <p><strong>Combustible:</strong> ${escapeHtml(vehiculo.combustible || 'N/D')}</p>
+        <p><strong>Total facturado:</strong> RD$ ${historialVehiculo.totalFacturado.toFixed(2)}</p>
+        <p><strong>Saldo pendiente:</strong> RD$ ${historialVehiculo.saldoPendiente.toFixed(2)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function buildClienteWorkspaceExpedientePreview(expediente) {
+  const { orden, cotizacion, factura, salida } = expediente;
+  const commercialStatus = cotizacion ? getCommercialStatusMeta(getCotizacionCommercialStatus(cotizacion)).label : 'Sin cotización';
+  const operationalStatus = cotizacion ? getOperationalStatusMeta(getCotizacionOperationalStatus(cotizacion)).label : 'Sin seguimiento';
+  const collectionStatus = factura?.id ? getCollectionStatusMeta(factura.estadoCobro).label : 'Sin factura';
+
+  return `
+    <article class="client-preview-card client-preview-card-hero">
+      <p class="entry-summary-kicker">Expediente</p>
+      <h3>${escapeHtml(orden.id)}</h3>
+      <p class="text-tip">${escapeHtml(orden.vehiculo?.modelo || 'Vehículo')} · ${escapeHtml(orden.vehiculo?.placa || 'Sin placa')} · ${escapeHtml(orden.ordenEntrada?.motivoEntrada || 'Sin motivo registrado')}</p>
+      <div class="client-preview-stat-grid">
+        <div class="client-preview-stat"><span>Comercial</span><strong>${escapeHtml(commercialStatus)}</strong></div>
+        <div class="client-preview-stat"><span>Operativo</span><strong>${escapeHtml(operationalStatus)}</strong></div>
+        <div class="client-preview-stat"><span>Cobro</span><strong>${escapeHtml(collectionStatus)}</strong></div>
+        <div class="client-preview-stat"><span>Salida</span><strong>${escapeHtml(salida ? getSalidaEstadoLabel(salida.estadoSalidaVehiculo) : 'Pendiente')}</strong></div>
+      </div>
+      <div class="client-preview-meta-grid">
+        <p><strong>Fecha OT:</strong> ${formatDisplayDate(orden.fecha || orden.savedAt)}</p>
+        <p><strong>Millaje:</strong> ${escapeHtml(orden.ordenEntrada?.millajeEntrada || 'N/D')} km</p>
+        <p><strong>Cotización:</strong> ${escapeHtml(cotizacion?.id || 'Sin cotización')}</p>
+        <p><strong>Factura:</strong> ${escapeHtml(factura?.id || 'Sin factura')}</p>
+      </div>
+    </article>
+    <div class="client-preview-card-grid">
+      <article class="client-preview-card">
+        <h4>Entrada</h4>
+        <p><strong>Motivo:</strong> ${escapeHtml(orden.ordenEntrada?.motivoEntrada || 'N/D')}</p>
+        <p><strong>Observaciones:</strong> ${escapeHtml(orden.ordenEntrada?.observacionesEntrada || 'Sin observaciones')}</p>
+      </article>
+      <article class="client-preview-card">
+        <h4>Salida</h4>
+        <p><strong>Estado:</strong> ${escapeHtml(salida ? getSalidaEstadoLabel(salida.estadoSalidaVehiculo) : 'Pendiente')}</p>
+        <p><strong>Observaciones:</strong> ${escapeHtml(salida?.observacionesSalida || 'Sin salida registrada')}</p>
+      </article>
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceCotizacionPreview(expediente) {
+  const cotizacion = expediente.cotizacion;
+  if (!cotizacion) {
+    return buildClienteWorkspaceExpedientePreview(expediente);
+  }
+
+  return `
+    <article class="client-preview-card client-preview-card-hero">
+      <p class="entry-summary-kicker">Cotización</p>
+      <h3>${escapeHtml(cotizacion.id)}</h3>
+      <p class="text-tip">${escapeHtml(getCommercialStatusMeta(getCotizacionCommercialStatus(cotizacion)).label)} · ${escapeHtml(cotizacion.vehiculo?.modelo || 'Vehículo')} (${escapeHtml(cotizacion.vehiculo?.placa || 'Sin placa')})</p>
+      <div class="client-preview-stat-grid">
+        <div class="client-preview-stat"><span>Subtotal</span><strong>RD$ ${Number(cotizacion.subtotal || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>ITBIS</span><strong>RD$ ${Number(cotizacion.itbis || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>Total</span><strong>RD$ ${Number(cotizacion.totalFinal || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>Piezas</span><strong>${Array.isArray(cotizacion.piezas) ? cotizacion.piezas.length : 0}</strong></div>
+      </div>
+      <div class="client-preview-meta-grid">
+        <p><strong>Trabajo:</strong> ${escapeHtml(cotizacion.trabajo || cotizacion.diagnostico?.trabajo || 'N/D')}</p>
+        <p><strong>Horas:</strong> ${escapeHtml(String(cotizacion.horas || '0'))}</p>
+        <p><strong>Orden vinculada:</strong> ${escapeHtml(expediente.orden.id)}</p>
+        <p><strong>Fecha:</strong> ${formatDisplayDate(cotizacion.fecha)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function buildClienteWorkspaceFacturaPreview(expediente) {
+  const factura = expediente.factura;
+  if (!factura?.id) {
+    return buildClienteWorkspaceExpedientePreview(expediente);
+  }
+
+  return `
+    <article class="client-preview-card client-preview-card-hero">
+      <p class="entry-summary-kicker">Factura</p>
+      <h3>${escapeHtml(factura.id)}</h3>
+      <p class="text-tip">${escapeHtml(getCollectionStatusMeta(factura.estadoCobro).label)} · ${escapeHtml(factura.vehiculo?.modelo || 'Vehículo')} (${escapeHtml(factura.vehiculo?.placa || 'Sin placa')})</p>
+      <div class="client-preview-stat-grid">
+        <div class="client-preview-stat"><span>Subtotal</span><strong>RD$ ${Number(factura.subtotal || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>Total</span><strong>RD$ ${Number(factura.totalFinal || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>Pagado</span><strong>RD$ ${Number(factura.totalPagado || 0).toFixed(2)}</strong></div>
+        <div class="client-preview-stat"><span>Saldo</span><strong>RD$ ${Number(factura.saldoPendiente || 0).toFixed(2)}</strong></div>
+      </div>
+      <div class="client-preview-meta-grid">
+        <p><strong>Fecha:</strong> ${formatDisplayDate(factura.fecha)}</p>
+        <p><strong>Cotización:</strong> ${escapeHtml(expediente.cotizacion?.id || factura.cotizacionId || 'N/D')}</p>
+        <p><strong>Pagos:</strong> ${Array.isArray(factura.pagos) ? factura.pagos.length : 0}</p>
+        <p><strong>Orden:</strong> ${escapeHtml(expediente.orden.id)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function buildClienteWorkspacePreviewPanel(cliente, data, preview) {
+  if (preview.type === 'vehiculo') {
+    return buildClienteWorkspaceVehiculoPreview(cliente, preview.record);
+  }
+  if (preview.type === 'expediente') {
+    return buildClienteWorkspaceExpedientePreview(preview.record);
+  }
+  if (preview.type === 'cotizacion') {
+    return buildClienteWorkspaceCotizacionPreview(preview.record);
+  }
+  if (preview.type === 'factura') {
+    return buildClienteWorkspaceFacturaPreview(preview.record);
+  }
+  return buildClienteWorkspaceClientePreview(cliente, data);
+}
+
+function buildClienteWorkspaceHistorialSection(data) {
+  if (!data.historial.length) {
+    return '<div class="client-empty-state">Todavía no hay movimientos registrados para este cliente.</div>';
+  }
+
+  return `
+    <div class="client-record-list">
+      ${data.historial.map(item => `
+        <article class="client-record-card">
+          <div class="client-record-copy">
+            <span class="client-record-badge">${escapeHtml(item.tipo)}</span>
+            <strong>${escapeHtml(item.detalle)}</strong>
+            <p>${formatDisplayDate(item.fecha)}</p>
+          </div>
+          <div class="client-item-actions">
+            <button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="${item.previewType}" data-record-id="${item.previewId}">Previsualizar</button>
+            ${item.printAction || ''}
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceVehiculosSection(cliente, data) {
+  if (!data.vehiculos.length) {
+    return '<div class="client-empty-state">Este cliente todavía no tiene vehículos registrados.</div>';
+  }
+
+  return `
+    <div class="client-record-list">
+      ${data.vehiculos.map(vehiculo => `
+        <article class="client-record-card">
+          <div class="client-record-copy">
+            <span class="client-record-badge">Vehículo</span>
+            <strong>${escapeHtml(getVehicleFullLabel(vehiculo))}</strong>
+            <p>${escapeHtml(vehiculo.placa || 'Sin placa')} · ${escapeHtml(vehiculo.chasis || 'Sin chasis')} · ${escapeHtml(vehiculo.color || 'Color N/D')}</p>
+          </div>
+          <div class="client-item-actions">
+            <button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="vehiculo" data-record-id="${getVehicleRecordId(vehiculo)}">Previsualizar</button>
+            <button type="button" class="btn-secondary" data-action="clientes-seleccionar-vehiculo" data-client-id="${getClientRecordId(cliente)}" data-vehicle-id="${getVehicleRecordId(vehiculo)}">Editar</button>
+            <button type="button" class="btn-danger" data-action="clientes-eliminar-vehiculo" data-client-id="${getClientRecordId(cliente)}" data-vehicle-id="${getVehicleRecordId(vehiculo)}">Eliminar</button>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceExpedientesSection(data) {
+  if (!data.expedientes.length) {
+    return '<div class="client-empty-state">No hay entradas o salidas registradas para este cliente.</div>';
+  }
+
+  return `
+    <div class="client-record-list">
+      ${data.expedientes.map(expediente => {
+        const commercialStatus = expediente.cotizacion ? getCommercialStatusMeta(getCotizacionCommercialStatus(expediente.cotizacion)).label : 'Sin cotización';
+        const collectionStatus = expediente.factura?.id ? getCollectionStatusMeta(expediente.factura.estadoCobro).label : 'Sin factura';
+        return `
+          <article class="client-record-card">
+            <div class="client-record-copy">
+              <span class="client-record-badge">${escapeHtml(expediente.salida ? 'Entrada / salida' : 'Orden de entrada')}</span>
+              <strong>${escapeHtml(expediente.orden.id)} · ${escapeHtml(expediente.orden.ordenEntrada?.motivoEntrada || 'Sin motivo')}</strong>
+              <p>${escapeHtml(expediente.orden.vehiculo?.modelo || 'Vehículo')} · ${escapeHtml(expediente.orden.vehiculo?.placa || 'Sin placa')} · ${escapeHtml(commercialStatus)} · ${escapeHtml(collectionStatus)}</p>
+            </div>
+            <div class="client-item-actions">
+              <button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="expediente" data-record-id="${expediente.orden.id}">Previsualizar</button>
+              <button type="button" class="btn-secondary" data-action="shell-imprimir-ot" data-orden-id="${expediente.orden.id}">Imprimir OT</button>
+            </div>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceCotizacionesSection(data) {
+  if (!data.cotizaciones.length) {
+    return '<div class="client-empty-state">No hay cotizaciones registradas para este cliente.</div>';
+  }
+
+  return `
+    <div class="client-record-list">
+      ${data.cotizaciones.map(expediente => `
+        <article class="client-record-card">
+          <div class="client-record-copy">
+            <span class="client-record-badge">Cotización</span>
+            <strong>${escapeHtml(expediente.cotizacion.id)} · RD$ ${Number(expediente.cotizacion.totalFinal || 0).toFixed(2)}</strong>
+            <p>${escapeHtml(getCommercialStatusMeta(getCotizacionCommercialStatus(expediente.cotizacion)).label)} · ${escapeHtml(expediente.cotizacion.vehiculo?.modelo || 'Vehículo')} (${escapeHtml(expediente.cotizacion.vehiculo?.placa || 'Sin placa')})</p>
+          </div>
+          <div class="client-item-actions">
+            <button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="cotizacion" data-record-id="${expediente.cotizacion.id}">Previsualizar</button>
+            <button type="button" class="btn-secondary" data-action="clientes-imprimir-cotizacion" data-cotizacion-id="${expediente.cotizacion.id}">Imprimir</button>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceFacturasSection(data) {
+  if (!data.facturas.length) {
+    return '<div class="client-empty-state">No hay facturas registradas para este cliente.</div>';
+  }
+
+  return `
+    <div class="client-record-list">
+      ${data.facturas.map(expediente => `
+        <article class="client-record-card">
+          <div class="client-record-copy">
+            <span class="client-record-badge">Factura</span>
+            <strong>${escapeHtml(expediente.factura.id)} · RD$ ${Number(expediente.factura.totalFinal || 0).toFixed(2)}</strong>
+            <p>${escapeHtml(getCollectionStatusMeta(expediente.factura.estadoCobro).label)} · Saldo RD$ ${Number(expediente.factura.saldoPendiente || 0).toFixed(2)}</p>
+          </div>
+          <div class="client-item-actions">
+            <button type="button" class="btn-primary" data-action="clientes-preview-registro" data-record-type="factura" data-record-id="${expediente.factura.id}">Previsualizar</button>
+            <button type="button" class="btn-secondary" data-action="facturacion-imprimir" data-factura-id="${expediente.factura.id}">Imprimir</button>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceEditarSection(cliente, data) {
+  return `
+    <div class="client-record-list">
+      <article class="client-record-card client-record-card-edit">
+        <div class="client-record-copy">
+          <span class="client-record-badge">Cliente</span>
+          <strong>${escapeHtml(getClientDisplayName(cliente) || 'Cliente sin nombre')}</strong>
+          <p>${escapeHtml(cliente.id || 'Sin identificación')} · ${escapeHtml(cliente.telefono || 'Sin teléfono')} · ${data.vehiculos.length} vehículo(s)</p>
+        </div>
+        <div class="client-item-actions">
+          <button type="button" class="btn-primary" data-action-call="editarClienteWorkspaceActual">Editar cliente</button>
+          <button type="button" class="btn-secondary" data-action-call="prepararNuevoVehiculoClienteActual">Agregar vehículo</button>
+          <button type="button" class="btn-secondary" data-action="clientes-preview-registro" data-record-type="cliente" data-record-id="${getClientRecordId(cliente)}">Ver ficha</button>
+        </div>
+      </article>
+    </div>
+  `;
+}
+
+function buildClienteWorkspaceSectionContent(cliente, data) {
+  switch (clienteWorkspaceSection) {
+    case 'vehiculos':
+      return buildClienteWorkspaceVehiculosSection(cliente, data);
+    case 'entradas-salidas':
+      return buildClienteWorkspaceExpedientesSection(data);
+    case 'cotizaciones':
+      return buildClienteWorkspaceCotizacionesSection(data);
+    case 'facturas':
+      return buildClienteWorkspaceFacturasSection(data);
+    case 'editar':
+      return buildClienteWorkspaceEditarSection(cliente, data);
+    case 'historial':
+    default:
+      return buildClienteWorkspaceHistorialSection(data);
+  }
 }
 
 function renderClienteWorkspaceList() {
@@ -6699,13 +8293,23 @@ function renderClienteWorkspaceList() {
   listElement.innerHTML = clientesFiltrados.map(cliente => {
     const clientId = getClientRecordId(cliente);
     const displayNombre = cliente.tipo === 'rnc' && cliente.empresa ? cliente.empresa : cliente.nombre;
+    const clientExpedientes = getClienteOrdenesRelacionadas(cliente);
+    const ultimoExpediente = clientExpedientes[0] || null;
     return `
       <article class="client-workspace-card ${clientId === currentLoadedClientId ? 'active' : ''}" data-action="clientes-seleccionar-workspace" data-client-id="${clientId}">
-        <h4>${displayNombre || 'Cliente sin nombre'}</h4>
-        <div class="client-workspace-meta">
-          <p><strong>ID interno:</strong> ${clientId}</p>
-          <p><strong>Identificación:</strong> ${cliente.id || 'N/D'}</p>
-          <p><strong>Vehículos:</strong> ${cliente.vehiculos?.length || 0}</p>
+        <div class="client-workspace-card-main">
+          <div class="client-workspace-card-heading">
+            <h4>${displayNombre || 'Cliente sin nombre'}</h4>
+            <span class="client-workspace-card-id">${clientId}</span>
+          </div>
+          <div class="client-workspace-meta">
+            <p>${cliente.id || 'Sin identificación'} · ${cliente.telefono || cliente.whatsapp || 'Sin contacto'}</p>
+            <p>${ultimoExpediente ? `Último expediente: ${ultimoExpediente.id}` : 'Sin expedientes registrados'}</p>
+          </div>
+        </div>
+        <div class="client-workspace-card-side">
+          <span class="client-workspace-chip">${cliente.vehiculos?.length || 0} veh.</span>
+          <span class="client-workspace-chip">${clientExpedientes.length} exp.</span>
         </div>
       </article>
     `;
@@ -6722,141 +8326,48 @@ function renderClienteWorkspaceDetail(clientId = currentLoadedClientId) {
 
   const cliente = findClientByRecordId(clientId);
   if (!cliente) {
-    detailElement.innerHTML = '<div class="client-empty-state">Todavía no hay un cliente seleccionado.</div>';
+    detailElement.innerHTML = '<div class="client-empty-state client-empty-state-lg">Selecciona un cliente de la columna izquierda para desbloquear su expediente en este panel.</div>';
     if (titleElement && clienteWorkspaceMode === 'detail') {
-      titleElement.textContent = 'Detalle del Cliente Seleccionado';
+      titleElement.textContent = 'Expediente del cliente';
     }
     if (hintElement) {
-      hintElement.textContent = 'Selecciona un cliente de la lista para ver sus datos, vehículos, historial, cotizaciones y facturas.';
+      hintElement.textContent = 'El detalle derecho se activa al elegir un cliente y luego te deja moverte por historial, vehículos, entradas/salidas, cotizaciones, facturas y edición sin salir de este módulo.';
     }
     updateClienteWorkspaceEditorState();
     return;
   }
 
   const displayNombre = cliente.tipo === 'rnc' && cliente.empresa ? cliente.empresa : cliente.nombre;
-  const cotizaciones = getClienteRelacionadoCotizaciones(cliente);
-  const facturas = getClienteRelacionadoFacturas(cliente);
-  const historial = getClienteHistorial(cliente);
-  const vehiculoSeleccionado = cliente.vehiculos?.find(vehiculo => getVehicleRecordId(vehiculo) === currentLoadedVehicleId)
-    || cliente.vehiculos?.[0]
-    || null;
-  const historialVehiculo = getVehiculoHistorialDetalle(cliente, vehiculoSeleccionado);
-  const vehiculosHtml = cliente.vehiculos?.length
-    ? cliente.vehiculos.map(vehiculo => `
-        <li>
-          <strong>${getVehicleFullLabel(vehiculo)}</strong>
-          <p>ID: ${getVehicleRecordId(vehiculo)} · Placa: ${vehiculo.placa || 'N/D'} · Chasis: ${vehiculo.chasis || 'N/D'}</p>
-          <div class="client-item-actions">
-            <button type="button" class="btn-secondary" data-action="clientes-seleccionar-vehiculo" data-client-id="${getClientRecordId(cliente)}" data-vehicle-id="${getVehicleRecordId(vehiculo)}">Editar vehículo</button>
-            <button type="button" class="btn-danger" data-action="clientes-eliminar-vehiculo" data-client-id="${getClientRecordId(cliente)}" data-vehicle-id="${getVehicleRecordId(vehiculo)}">Eliminar vehículo</button>
-          </div>
-        </li>
-      `).join('')
-    : '<li>No hay vehículos asociados.</li>';
-
-  const cotizacionesHtml = cotizaciones.length
-    ? cotizaciones.slice(0, 8).map(cotizacion => `
-        <li>
-          <strong>${cotizacion.id}</strong>
-          <p>${cotizacion.fecha} · ${cotizacion.vehiculo?.modelo || 'Vehículo'} (${cotizacion.vehiculo?.placa || 'Sin placa'}) · RD$ ${Number(cotizacion.totalFinal || 0).toFixed(2)}</p>
-          <button type="button" class="btn-secondary" data-action="clientes-abrir-cotizacion" data-cotizacion-id="${cotizacion.id}">Abrir cotización</button>
-        </li>
-      `).join('')
-    : '<li>No hay cotizaciones registradas para este cliente.</li>';
-
-  const facturasHtml = facturas.length
-    ? facturas.slice(0, 8).map(factura => `
-        <li>
-          <strong>${factura.id}</strong>
-          <p>${factura.fecha} · ${factura.vehiculo?.modelo || 'Vehículo'} (${factura.vehiculo?.placa || 'Sin placa'}) · RD$ ${Number(factura.totalFinal || 0).toFixed(2)}</p>
-          <button type="button" class="btn-primary" data-action="facturacion-imprimir" data-factura-id="${factura.id}">Imprimir factura</button>
-        </li>
-      `).join('')
-    : '<li>No hay facturas registradas para este cliente.</li>';
-
-  const historialHtml = historial.length
-    ? historial.slice(0, 10).map(item => `
-        <li>
-          <div>
-            <strong>${item.tipo}</strong>
-            <p>${item.fecha} · ${item.detalle}</p>
-          </div>
-          ${item.accion}
-        </li>
-      `).join('')
-    : '<li>No hay historial operativo para este cliente.</li>';
+  const data = getClienteWorkspaceData(cliente);
+  const preview = resolveClienteWorkspacePreview(cliente, data);
+  const sections = getClienteWorkspaceSectionOptions(data);
 
   detailElement.innerHTML = `
-    <div class="client-detail-grid">
-      <section class="client-detail-section">
-        <h4>Datos del Cliente</h4>
-        <p><strong>Nombre:</strong> ${displayNombre || 'N/D'}</p>
-        <p><strong>ID interno:</strong> ${getClientRecordId(cliente)}</p>
-        <p><strong>Identificación:</strong> ${cliente.id || 'N/D'}</p>
-        <p><strong>Teléfono:</strong> ${cliente.telefono || 'N/D'}</p>
-        <p><strong>WhatsApp:</strong> ${cliente.whatsapp || 'N/D'}</p>
-      </section>
-      <section class="client-detail-section">
-        <h4>Resumen</h4>
-        <p><strong>Vehículos asociados:</strong> ${cliente.vehiculos?.length || 0}</p>
-        <p><strong>Cotizaciones:</strong> ${cotizaciones.length}</p>
-        <p><strong>Facturas:</strong> ${facturas.length}</p>
-        <p><strong>Última actualización:</strong> ${new Date(cliente.lastModified).toLocaleString('es-DO')}</p>
-      </section>
-      <section class="client-detail-section is-wide">
-        <h4>Vehículos</h4>
-        <ul class="client-detail-list">${vehiculosHtml}</ul>
-      </section>
-      <section class="client-detail-section is-wide">
-        <h4>Historial del Vehículo Seleccionado</h4>
-        ${vehiculoSeleccionado ? `
-          <div class="client-vehicle-history-grid">
-            <div class="client-vehicle-summary">
-              <strong>${getVehicleFullLabel(vehiculoSeleccionado)}</strong>
-              <p>${vehiculoSeleccionado.placa || 'Sin placa'} · ${vehiculoSeleccionado.chasis || 'Sin chasis'} · ${vehiculoSeleccionado.anio || 'Ano N/D'}</p>
-              <div class="client-vehicle-summary-grid">
-                <div class="client-vehicle-summary-item"><span>Entradas / OT</span><strong>${historialVehiculo.ordenes.length}</strong></div>
-                <div class="client-vehicle-summary-item"><span>Reingresos</span><strong>${historialVehiculo.reingresos}</strong></div>
-                <div class="client-vehicle-summary-item"><span>Cotizaciones</span><strong>${historialVehiculo.cotizaciones.length}</strong></div>
-                <div class="client-vehicle-summary-item"><span>Facturas</span><strong>${historialVehiculo.facturas.length}</strong></div>
-                <div class="client-vehicle-summary-item"><span>Total facturado</span><strong>RD$ ${historialVehiculo.totalFacturado.toFixed(2)}</strong></div>
-                <div class="client-vehicle-summary-item"><span>Saldo pendiente</span><strong>RD$ ${historialVehiculo.saldoPendiente.toFixed(2)}</strong></div>
-              </div>
-            </div>
-            <ul class="client-vehicle-timeline">
-              ${historialVehiculo.timeline.length
-                ? historialVehiculo.timeline.map(item => `
-                    <li>
-                      <strong>${item.tipo}</strong>
-                      <p>${formatDisplayDate(item.fecha)} · ${item.detalle}</p>
-                      ${item.accion}
-                    </li>
-                  `).join('')
-                : '<li><strong>Sin historial</strong><p>Este vehículo todavía no tiene entradas, cotizaciones ni facturas registradas.</p></li>'}
-            </ul>
-          </div>
-        ` : '<div class="client-empty-state">Selecciona o registra un vehículo para ver su historial completo.</div>'}
-      </section>
-      <section class="client-detail-section">
-        <h4>Cotizaciones</h4>
-        <ul class="client-detail-list">${cotizacionesHtml}</ul>
-      </section>
-      <section class="client-detail-section">
-        <h4>Facturas</h4>
-        <ul class="client-detail-list">${facturasHtml}</ul>
-      </section>
-      <section class="client-detail-section is-wide">
-        <h4>Historial</h4>
-        <ul class="client-history-list">${historialHtml}</ul>
-      </section>
+    <div class="client-expediente-shell">
+      <aside class="client-expediente-nav">
+        ${sections.map(section => `
+          <button type="button" class="client-expediente-nav-btn ${section.id === clienteWorkspaceSection ? 'active' : ''}" data-action="clientes-cambiar-panel" data-section="${section.id}">
+            <strong>${section.label}</strong>
+            <span>${section.meta}</span>
+          </button>
+        `).join('')}
+      </aside>
+      <div class="client-expediente-main">
+        <section class="client-expediente-preview-panel">
+          ${buildClienteWorkspacePreviewPanel(cliente, data, preview)}
+        </section>
+        <section class="client-expediente-content-panel">
+          ${buildClienteWorkspaceSectionContent(cliente, data)}
+        </section>
+      </div>
     </div>
   `;
 
   if (hintElement) {
-    hintElement.textContent = `Detalle cargado para ${displayNombre || 'cliente seleccionado'}.`;
+    hintElement.textContent = `Expediente cargado para ${displayNombre || 'cliente seleccionado'}. Usa el submenú interno para revisar historial, vehículos y documentos sin cambiar de pestaña.`;
   }
   if (titleElement && clienteWorkspaceMode === 'detail') {
-    titleElement.textContent = displayNombre || 'Detalle del Cliente';
+    titleElement.textContent = displayNombre || 'Expediente del cliente';
   }
   updateClienteWorkspaceEditorState();
 }
@@ -6998,6 +8509,20 @@ function abrirNuevoClienteWorkspace() {
   setClienteWorkspaceMode('new-client');
 }
 
+function cambiarSeccionClienteWorkspace(section = 'historial') {
+  clienteWorkspaceSection = section || 'historial';
+  clienteWorkspacePreview = { type: '', id: '' };
+  renderClienteWorkspaceDetail(currentLoadedClientId);
+}
+
+function previsualizarRegistroClienteWorkspace(type = 'cliente', id = '') {
+  clienteWorkspacePreview = {
+    type: type || 'cliente',
+    id: id || ''
+  };
+  renderClienteWorkspaceDetail(currentLoadedClientId);
+}
+
 function editarClienteWorkspaceActual() {
   if (!findClientByRecordId(currentLoadedClientId)) {
     alert('Selecciona primero un cliente de la lista para editarlo.');
@@ -7032,6 +8557,8 @@ function cancelarEdicionClienteWorkspace() {
 }
 
 function seleccionarClienteWorkspace(clientId) {
+  clienteWorkspaceSection = 'historial';
+  clienteWorkspacePreview = { type: 'cliente', id: clientId || '' };
   const selectCliente = document.getElementById('cargarClienteSelect');
   if (selectCliente) {
     selectCliente.value = clientId;
@@ -7418,6 +8945,8 @@ async function cargarClienteSeleccionado() {
   }
 
   if (!clienteSeleccionadoId) {
+    clienteWorkspaceSection = 'historial';
+    clienteWorkspacePreview = { type: 'cliente', id: '' };
     resetWorkflowModules();
     limpiarCamposCliente(false);
     limpiarCamposVehiculo(true);
@@ -7446,6 +8975,10 @@ async function cargarClienteSeleccionado() {
     document.getElementById('emailCliente').value = cliente.email || '';
 
     currentLoadedClientId = getClientRecordId(cliente);
+    if (previousClientId !== currentLoadedClientId) {
+      clienteWorkspaceSection = 'historial';
+      clienteWorkspacePreview = { type: 'cliente', id: currentLoadedClientId };
+    }
     if (clientChanged || clientCleared) {
       currentLoadedVehicleId = null;
       resetWorkflowModules();
@@ -7721,6 +9254,9 @@ function cargarServiciosCatalogo() {
 
 function actualizarListaServiciosCatalogo() {
   const selectServicioGestion = document.getElementById('selectServicioCatalogoGestion');
+  if (!selectServicioGestion) {
+    return;
+  }
   selectServicioGestion.innerHTML = '<option value="">-- Seleccionar un servicio guardado --</option>';
   serviciosCatalogo.forEach(s => {
     const option = document.createElement('option');
@@ -7732,6 +9268,9 @@ function actualizarListaServiciosCatalogo() {
 
 function actualizarListaServiciosCatalogoEnNuevaCotizacion() {
   const selectServicioNuevaCotizacion = document.getElementById('selectServicioCatalogoNuevaCotizacion');
+  if (!selectServicioNuevaCotizacion) {
+    return;
+  }
   selectServicioNuevaCotizacion.innerHTML = '<option value="">-- Seleccionar un servicio --</option>';
   serviciosCatalogo.forEach(s => {
     const option = document.createElement('option');
@@ -7825,6 +9364,9 @@ function cargarPiezasCatalogo() {
 
 function actualizarListaPiezasCatalogo() {
   const selectPiezaGestion = document.getElementById('selectPiezaCatalogoGestion');
+  if (!selectPiezaGestion) {
+    return;
+  }
   selectPiezaGestion.innerHTML = '<option value="">-- Seleccionar una pieza guardada --</option>';
   piezasCatalogo.forEach(p => {
     const option = document.createElement('option');
@@ -7836,6 +9378,9 @@ function actualizarListaPiezasCatalogo() {
 
 function actualizarListaPiezasCatalogoEnNuevaCotizacion() {
   const selectPiezaNuevaCotizacion = document.getElementById('selectPiezaCatalogoNuevaCotizacion');
+  if (!selectPiezaNuevaCotizacion) {
+    return;
+  }
   selectPiezaNuevaCotizacion.innerHTML = '<option value="">-- Seleccionar una pieza --</option>';
   piezasCatalogo.forEach(p => {
     const option = document.createElement('option');
@@ -7888,8 +9433,8 @@ function eliminarPiezaCatalogo() {
 }
 
 function calcularTotal() {
-  if (!hasSelectedClientAndVehicle() || !isClienteModuleComplete() || !isVehiculoModuleComplete()) {
-    alert('Debes tener un cliente y un vehiculo validos cargados antes de calcular la cotizacion.');
+  if (!isClienteModuleComplete() || !isVehiculoModuleComplete()) {
+    alert('Debes completar datos válidos de cliente y vehículo antes de calcular la cotización.');
     openTab(null, 'cotStepCliente', null, true);
     return false;
   }
@@ -8075,6 +9620,19 @@ function guardarCotizacion() {
     return;
   }
 
+  if (!currentLoadedEntryOrderId) {
+    const ordenGuardada = guardarOrdenEntrada(false);
+    if (!ordenGuardada) {
+      alert('No se pudo crear la orden de entrada base para guardar la cotización.');
+      return;
+    }
+  }
+
+  if (!guardarDiagnostico({ silent: true })) {
+    alert('No se pudo consolidar el diagnóstico antes de guardar la cotización.');
+    return;
+  }
+
   const existingCotizacionIndex = currentLoadedCotizacionId
     ? cotizacionesGuardadas.findIndex(cotizacion => cotizacion.id === currentLoadedCotizacionId)
     : -1;
@@ -8088,8 +9646,26 @@ function guardarCotizacion() {
   const diagnosticoPayload = getDiagnosticoPayload();
   const currentStatus = getCurrentCotizacionStatusUI();
   currentCotizacionApprovalConfig = normalizeCotizacionApprovalConfig(currentCotizacionApprovalConfig, getCurrentQuotePiecesSnapshot(), currentStatus);
-  const cotizacionId = isEditingExistingCotizacion ? cotizacionesGuardadas[existingCotizacionIndex].id : `COT-${Date.now()}`;
-  const cotizacion = {
+  const existingCotizacion = isEditingExistingCotizacion ? cotizacionesGuardadas[existingCotizacionIndex] : null;
+  const cotizacionId = isEditingExistingCotizacion ? cotizacionesGuardadas[existingCotizacionIndex].id : generarEntidadId('COT');
+  const normalizedDiagnostico = normalizeDiagnosticoRecord({
+    ...(existingCotizacion?.diagnostico || {}),
+    ...diagnosticoPayload
+  }, {
+    ordenEntradaId: currentLoadedEntryOrderId,
+    cotizacionId,
+    useCurrentFallback: true
+  });
+  const normalizedSalida = normalizeSalidaRecord({
+    ...(existingCotizacion?.salida || {}),
+    ...getSalidaPayload()
+  }, {
+    ordenEntradaId: currentLoadedEntryOrderId,
+    cotizacionId,
+    useCurrentFallback: true
+  });
+  const cotizacion = normalizeCotizacionRecord({
+    ...existingCotizacion,
     id: cotizacionId,
     fecha: document.getElementById('fecha').value,
     ordenEntradaId: currentLoadedEntryOrderId,
@@ -8122,7 +9698,7 @@ function guardarCotizacion() {
       domicilio: getServicioDomicilioPayload()
     },
     ordenEntrada: getOrdenEntradaPayload(),
-    diagnostico: diagnosticoPayload,
+    diagnostico: normalizedDiagnostico,
     seguimiento: {
       estatusTrabajo: normalizeSeguimientoStatus(document.getElementById('estatusTrabajo').value),
       trabajoProceso: document.getElementById('trabajoProceso').value.trim(),
@@ -8132,7 +9708,7 @@ function guardarCotizacion() {
       fechaEntregaReal: document.getElementById('fechaEntregaReal').value,
       controlCalidad: getSeguimientoQualityPayload()
     },
-    salida: getSalidaPayload(),
+    salida: normalizedSalida,
     piezas: piezasActivas.map(i => {
       const nombre = document.getElementById(`piezaNombre${i}`).value.trim();
       const cantidad = parseFloat(document.getElementById(`piezaCantidad${i}`).value);
@@ -8161,13 +9737,26 @@ function guardarCotizacion() {
     totalFinal: parseFloat(document.getElementById('pTotal').textContent),
     status: currentStatus,
     approval: currentCotizacionApprovalConfig
-  };
+  });
 
   if (isEditingExistingCotizacion) {
     cotizacionesGuardadas.splice(existingCotizacionIndex, 1, cotizacion);
   } else {
     cotizacionesGuardadas.push(cotizacion);
   }
+
+  const ordenIndex = ordenesEntradaGuardadas.findIndex(orden => orden.id === cotizacion.ordenEntradaId);
+  if (ordenIndex >= 0) {
+    ordenesEntradaGuardadas.splice(ordenIndex, 1, normalizeOrdenEntradaRecord({
+      ...ordenesEntradaGuardadas[ordenIndex],
+      cotizacionId: cotizacion.id,
+      diagnostico: cotizacion.diagnostico,
+      updatedAt: new Date().toISOString()
+    }));
+    persistOrdenesEntradaGuardadas();
+    actualizarListaOrdenesEntradaHistorial();
+  }
+
   currentLoadedCotizacionId = cotizacion.id;
   localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
   clearModuleDraft();
@@ -8183,8 +9772,18 @@ function guardarCotizacion() {
 function cargarCotizacionesGuardadas() {
   const cotizacionesGuardadasStr = localStorage.getItem(LOCAL_STORAGE_COTIZACIONES_KEY);
   if (cotizacionesGuardadasStr) {
-    cotizacionesGuardadas = JSON.parse(cotizacionesGuardadasStr);
-    actualizarListaCotizacionesHistorial();
+    try {
+      const parsedCotizaciones = JSON.parse(cotizacionesGuardadasStr);
+      cotizacionesGuardadas = (Array.isArray(parsedCotizaciones) ? parsedCotizaciones : [])
+        .filter(cotizacion => cotizacion && typeof cotizacion === 'object')
+        .map(normalizeCotizacionRecord)
+        .filter(Boolean);
+      localStorage.setItem(LOCAL_STORAGE_COTIZACIONES_KEY, JSON.stringify(cotizacionesGuardadas));
+      actualizarListaCotizacionesHistorial();
+    } catch (error) {
+      console.error('No se pudieron cargar las cotizaciones guardadas.', error);
+      cotizacionesGuardadas = [];
+    }
   }
 }
 
@@ -8244,6 +9843,15 @@ function actualizarListaCotizacionesHistorial() {
       cargarCotizacionById(cot.id);
     };
     actionsCell.appendChild(loadBtn);
+
+    const printBtn = document.createElement('button');
+    printBtn.textContent = 'Imprimir';
+    printBtn.className = 'btn-secondary';
+    printBtn.onclick = e => {
+      e.stopPropagation();
+      imprimirCotizacionById(cot.id);
+    };
+    actionsCell.appendChild(printBtn);
 
     const statusBtn = document.createElement('button');
     statusBtn.textContent = 'Cambiar Estado';
@@ -8366,6 +9974,17 @@ function cargarCotizacionById(idCotizacion) {
   openCotStep(null, 'cotStepCliente');
   updateModuleCompletionIndicators();
   showAppNotice({ title: 'Cotización cargada', message: `El expediente ${cotizacion.id} fue cargado en los módulos operativos.`, kicker: 'Expediente' });
+}
+
+function imprimirCotizacionById(idCotizacion) {
+  const cotizacion = cotizacionesGuardadas.find(item => item.id === idCotizacion) || null;
+  if (!cotizacion) {
+    notifyError('Cotización no encontrada', 'No se pudo encontrar la cotización seleccionada para impresión.', { kicker: 'Gestión' });
+    return;
+  }
+
+  cargarCotizacionById(idCotizacion);
+  imprimirCotizacion();
 }
 
 function cambiarEstadoCotizacion(idCotizacion) {
@@ -9283,10 +10902,18 @@ function convertirAFactura(cotizacionId) {
     ? normalizeServicioDomicilioState(cotizacion.servicio?.domicilio || {})
     : normalizeServicioDomicilioState({ enabled: false, amount: 0, description: cotizacion.servicio?.domicilio?.description || 'Servicio a domicilio' });
 
-  const factura = {
-    id: `FAC-${Date.now()}`,
+  const factura = normalizeFacturaRecord({
+    id: generarEntidadId('FAC'),
     fecha: new Date().toISOString().split('T')[0],
     cotizacionId: cotizacion.id,
+    ordenEntradaId: cotizacion.ordenEntradaId || '',
+    clienteId: cotizacion.cliente?.clientId || cotizacion.clienteId || '',
+    clienteIdentificacion: cotizacion.cliente?.identificacion || cotizacion.clienteIdentificacion || '',
+    vehiculoId: cotizacion.vehiculo?.vehicleId || cotizacion.vehiculoId || '',
+    vehiculoChasis: cotizacion.vehiculo?.chasis || cotizacion.vehiculoChasis || '',
+    vehiculoPlaca: cotizacion.vehiculo?.placa || cotizacion.vehiculoPlaca || '',
+    diagnosticoId: cotizacion.diagnostico?.id || cotizacion.diagnosticoId || '',
+    salidaId: cotizacion.salida?.id || cotizacion.salidaId || '',
     cliente: { ...cotizacion.cliente },
     vehiculo: { ...cotizacion.vehiculo },
     servicio: {
@@ -9313,9 +10940,9 @@ function convertirAFactura(cotizacionId) {
       emitidoPor: cotizacion.opcionesFacturacion?.emitidoPor || configuracionGeneral.emitidoPor,
       notasImportantes: cotizacion.opcionesFacturacion?.notasImportantes || configuracionGeneral.notasImportantes
     }
-  };
+  });
 
-  facturasGuardadas.push(normalizeFacturaRecord(factura));
+  facturasGuardadas.push(factura);
   localStorage.setItem(LOCAL_STORAGE_FACTURAS_KEY, JSON.stringify(facturasGuardadas));
   actualizarListaFacturasHistorial();
   actualizarListaCotizacionesHistorial();
@@ -9438,8 +11065,8 @@ function prepararFacturaParaImpresion(factura) {
 }
 
 function prepararOrdenSalidaParaImpresion() {
-  if (!hasSelectedClientAndVehicle()) {
-    alert('Debes seleccionar un cliente y un vehículo antes de imprimir la orden de salida.');
+  if (!isClienteModuleComplete() || !isVehiculoModuleComplete()) {
+    alert('Debes completar los datos del cliente y del vehículo antes de imprimir la orden de salida.');
     return false;
   }
 

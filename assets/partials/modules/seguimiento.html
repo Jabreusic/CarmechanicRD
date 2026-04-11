@@ -28,7 +28,24 @@
       </div>
     </div>
 
+    <div class="workflow-lock-banner hidden" data-workflow-lock-banner>
+      <p class="text-tip" data-workflow-lock-message></p>
+      <button type="button" class="btn-secondary" data-action-call="liberarContextoOperativo">Liberar expediente para cambiar contexto</button>
+    </div>
+
     <div class="entry-selector-grid">
+      <div>
+        <label>Cliente</label>
+        <select data-workflow-client-select>
+          <option value="">-- Selecciona un cliente --</option>
+        </select>
+      </div>
+      <div>
+        <label>Vehículo</label>
+        <select data-workflow-vehicle-select>
+          <option value="">-- Selecciona un vehículo --</option>
+        </select>
+      </div>
       <div>
         <label>Buscar Visita</label>
         <input type="text" data-workflow-visit-search placeholder="OT, cliente, placa, chasis, motivo...">

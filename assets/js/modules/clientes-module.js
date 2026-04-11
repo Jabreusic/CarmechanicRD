@@ -14,6 +14,16 @@
     return false;
   });
 
+  bus.register('click', 'clientes-cambiar-panel', (event, element) => {
+    global.cambiarSeccionClienteWorkspace(element.dataset.section);
+    return false;
+  });
+
+  bus.register('click', 'clientes-preview-registro', (event, element) => {
+    global.previsualizarRegistroClienteWorkspace(element.dataset.recordType, element.dataset.recordId);
+    return false;
+  });
+
   bus.register('click', 'clientes-seleccionar-vehiculo', (event, element) => {
     global.seleccionarVehiculoDelCliente(element.dataset.clientId, element.dataset.vehicleId);
     return false;
@@ -26,6 +36,11 @@
 
   bus.register('click', 'clientes-abrir-cotizacion', (event, element) => {
     global.cargarCotizacionById(element.dataset.cotizacionId);
+    return false;
+  });
+
+  bus.register('click', 'clientes-imprimir-cotizacion', (event, element) => {
+    global.imprimirCotizacionById(element.dataset.cotizacionId);
     return false;
   });
 

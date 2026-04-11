@@ -64,13 +64,12 @@
         <div class="client-hub-main-header">
           <div>
             <p class="module-kicker">Detalle activo</p>
-            <h3 id="clienteWorkspaceMainTitle">Detalle del Cliente Seleccionado</h3>
-            <p id="clienteWorkspaceDetailHint" class="text-tip">Selecciona un cliente de la lista para ver sus datos, vehículos, historial, cotizaciones y facturas.</p>
+            <h3 id="clienteWorkspaceMainTitle">Expediente del cliente</h3>
+            <p id="clienteWorkspaceDetailHint" class="text-tip">Selecciona un cliente a la izquierda y usa el submenú interno para revisar su expediente completo sin salir de este panel.</p>
           </div>
           <div class="client-detail-toolbar module-v2-action-cluster">
             <button type="button" id="clienteWorkspaceEditBtn" class="btn-secondary" data-action-call="editarClienteWorkspaceActual">Editar cliente</button>
             <button type="button" id="clienteWorkspaceNewVehicleBtn" class="btn-secondary" data-action-call="prepararNuevoVehiculoClienteActual">Agregar vehículo</button>
-            <button type="button" class="btn-primary" data-action-call="openCotStep" data-action-args='[null, "cotStepOrden"]'>Abrir Entrada</button>
           </div>
         </div>
       </section>
@@ -211,7 +210,6 @@
       <div class="app-modal-footer">
         <button type="button" class="btn-secondary" data-action-call="cancelarEdicionClienteWorkspace">Cancelar</button>
         <button type="button" class="btn-success" data-action-call="guardarVehiculoClienteActual">🚘 Guardar Vehículo</button>
-        <button type="button" data-action-call="openCotStep" data-action-args='[null, "cotStepOrden"]'>Abrir módulo Entrada</button>
       </div>
     </div>
   </div>

@@ -487,17 +487,6 @@
   }
 
   function openTab(evt, tabName, subTabName = null, bypassGuard = false) {
-    if (!bypassGuard && MODULE_TAB_IDS.includes(tabName)) {
-      const guard = getModuleDependencyGuard(tabName);
-      if (!guard.allowed) {
-        showAppNotice({ title: 'Módulo bloqueado', message: guard.message, kicker: 'Flujo guiado' });
-        if (guard.fallback) {
-          openTab(null, guard.fallback, null, true);
-        }
-        return;
-      }
-    }
-
     let i;
     const tabcontent = document.getElementsByClassName('tab-content');
     for (i = 0; i < tabcontent.length; i += 1) {
@@ -596,19 +585,21 @@
         renderSalidaContext();
         loadSalidaSignatureToCanvas();
       }
-      if (!document.getElementById('fecha').value) {
+      const fechaInput = document.getElementById('fecha');
+      if (fechaInput && !fechaInput.value) {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        document.getElementById('fecha').value = `${year}-${month}-${day}`;
+        fechaInput.value = `${year}-${month}-${day}`;
       }
-      if (tabName === 'cotStepSalida' && !document.getElementById('fechaSalida').value) {
+      const fechaSalidaInput = document.getElementById('fechaSalida');
+      if (tabName === 'cotStepSalida' && fechaSalidaInput && !fechaSalidaInput.value) {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        document.getElementById('fechaSalida').value = `${year}-${month}-${day}`;
+        fechaSalidaInput.value = `${year}-${month}-${day}`;
       }
       updateModuleCompletionIndicators();
     }

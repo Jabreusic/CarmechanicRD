@@ -68,4 +68,9 @@
     global.cargarOrdenEntradaById(element.dataset.ordenId);
     return false;
   });
+
+  bus.register('click', 'shell-imprimir-ot', (event, element) => {
+    global.imprimirOrdenEntrada(element.dataset.ordenId);
+    return false;
+  });
 })(window);
