@@ -1680,6 +1680,115 @@ button:active {
   background: #f8fafc;
 }
 
+.quote-labor-mode-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%);
+}
+
+.quote-labor-mode-card h3 {
+  margin: 0 0 6px;
+}
+
+.quote-labor-mode-group {
+  margin: 0;
+  justify-content: flex-end;
+}
+
+.quote-items-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.quote-items-toolbar-field {
+  flex: 1 1 320px;
+}
+
+.quote-items-box {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: var(--shadow-sm);
+  overflow: auto;
+  max-height: 360px;
+}
+
+.quote-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.quote-items-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #e2e8f0;
+  color: #0f172a;
+  text-align: left;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.quote-items-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.quote-items-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.quote-item-row td:nth-child(2) {
+  min-width: 240px;
+}
+
+.quote-item-row select,
+.quote-item-row input {
+  margin: 0;
+  min-height: 42px;
+}
+
+.quote-item-row select {
+  min-width: 128px;
+}
+
+.quote-item-row input[type="number"] {
+  min-width: 96px;
+}
+
+.quote-item-row.is-labor td {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.quote-item-row.is-labor input[disabled] {
+  background: #f8fafc;
+  color: var(--gray-500);
+}
+
+.quote-item-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.quote-item-delete-btn {
+  margin: 0;
+}
+
 .seguimiento-timeline-block {
   position: relative;
 }
@@ -6010,6 +6119,21 @@ textarea:invalid:not(:placeholder-shown) + .error-message {
   .skip-link:focus {
     top: 10px;
     left: 10px;
+  }
+  .quote-labor-mode-card {
+    flex-direction: column;
+  }
+  .quote-labor-mode-group {
+    justify-content: flex-start;
+  }
+  .quote-items-toolbar {
+    align-items: stretch;
+  }
+  .quote-items-toolbar-field {
+    flex-basis: 100%;
+  }
+  .quote-items-box {
+    max-height: 420px;
   }
   .quote-delivery-header {
     flex-direction: column;

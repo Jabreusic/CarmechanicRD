@@ -12,7 +12,7 @@
     <div>
       <p class="module-kicker">Decisión comercial</p>
       <h3>Cotización con lectura lateral de contexto, piezas y aprobación</h3>
-      <p class="text-tip">Calcula mano de obra y repuestos mientras mantienes visible el estado comercial de la visita.</p>
+      <p class="text-tip">Calcula mano de obra y repuestos para una visita existente o para una cotización directa sin orden de entrada.</p>
     </div>
     <div class="module-v2-hero-actions">
       <button type="button" class="btn-secondary" data-action-call="openQuoteApprovalModal">🗂️ Configurar aprobación</button>
@@ -24,7 +24,7 @@
     <div class="client-form-card-header">
       <div>
         <h3>Seleccionar Expediente / Visita</h3>
-        <p class="text-tip">Carga la visita correspondiente y cotiza sobre ese expediente, no sobre un cliente activo único.</p>
+        <p class="text-tip">Carga la visita correspondiente si ya existe OT. Si es una cotización directa, basta con tener cliente y vehículo cargados.</p>
       </div>
     </div>
 
@@ -72,13 +72,13 @@
       </article>
       <article class="diagnostic-context-card">
         <p class="entry-summary-kicker">Entrada</p>
-        <h3 id="servicioOrdenTitle">Entrada pendiente</h3>
-        <p id="servicioOrdenMeta" class="text-tip">Aquí se mostrará el motivo de entrada y datos clave de recepción.</p>
+        <h3 id="servicioOrdenTitle">Sin OT activa</h3>
+        <p id="servicioOrdenMeta" class="text-tip">Si no hay recepción abierta, la cotización puede emitirse de forma directa con el cliente y vehículo cargados.</p>
       </article>
       <article class="diagnostic-context-card">
         <p class="entry-summary-kicker">Diagnóstico</p>
         <h3 id="servicioDiagnosticoTitle">Diagnóstico pendiente</h3>
-        <p id="servicioDiagnosticoMeta" class="text-tip">La cotización hereda hallazgos, prioridad y trabajo recomendado del diagnóstico.</p>
+        <p id="servicioDiagnosticoMeta" class="text-tip">Si existe diagnóstico, la cotización hereda sus hallazgos. Si no, puedes emitir una propuesta comercial directa.</p>
       </article>
     </div>
   </section>
@@ -86,7 +86,18 @@
   <section class="module-v2-grid module-v2-grid-sidebar-quote">
     <div class="module-v2-stack">
       <section class="module-v2-block">
-        <div class="module-v2-inline-grid module-v2-inline-grid-2">
+        <div class="quote-labor-mode-card">
+          <div>
+            <h3>Modo de mano de obra</h3>
+            <p class="text-tip">Usa el cálculo global tradicional o registra la mano de obra manualmente por cada ítem.</p>
+          </div>
+          <div class="radio-group quote-labor-mode-group">
+            <label><input type="radio" name="quoteLaborMode" value="global" checked data-change-call="syncQuoteLaborModeUI"> Global</label>
+            <label><input type="radio" name="quoteLaborMode" value="manual_items" data-change-call="syncQuoteLaborModeUI"> Manual por ítems</label>
+          </div>
+        </div>
+
+        <div id="quoteGlobalLaborBlock" class="module-v2-inline-grid module-v2-inline-grid-2">
           <div>
             <label for="selectServicioCatalogoNuevaCotizacion">Cargar Servicio del Catálogo:</label>
             <select id="selectServicioCatalogoNuevaCotizacion" data-change-call="cargarServicioCatalogoNuevaCotizacion">
@@ -201,16 +212,35 @@
         <div class="client-form-card-header label-mt">
           <div>
             <h3>Artículos / Piezas de la Cotización</h3>
-            <p class="text-tip">Los repuestos forman parte directa de la cotización y se calculan junto a la mano de obra.</p>
+            <p class="text-tip">Agrega piezas y, si eliges el modo manual, también líneas de mano de obra dentro del mismo cuadro compacto.</p>
           </div>
         </div>
 
-        <label for="selectPiezaCatalogoNuevaCotizacion">Cargar Pieza del Catálogo:</label>
-        <select id="selectPiezaCatalogoNuevaCotizacion" data-change-call="cargarPiezaCatalogoNuevaCotizacion">
-          <option value="">-- Seleccionar una pieza --</option>
-        </select>
-        <div id="piezasContainer" class="item-container"></div>
-        <button type="button" id="agregarPiezaBtn" data-action-call="agregarPieza">➕ Añadir Pieza</button>
+        <div class="quote-items-toolbar">
+          <div class="quote-items-toolbar-field">
+            <label for="selectPiezaCatalogoNuevaCotizacion">Cargar Pieza del Catálogo:</label>
+            <select id="selectPiezaCatalogoNuevaCotizacion" data-change-call="cargarPiezaCatalogoNuevaCotizacion">
+              <option value="">-- Seleccionar una pieza --</option>
+            </select>
+          </div>
+          <button type="button" id="agregarPiezaBtn" data-action-call="agregarPieza">➕ Añadir Ítem</button>
+        </div>
+
+        <div class="quote-items-box">
+          <table class="quote-items-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Ítem</th>
+                <th>Cant.</th>
+                <th>Precio base</th>
+                <th>Margen</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="piezasContainer"></tbody>
+          </table>
+        </div>
       </section>
     </div>
 

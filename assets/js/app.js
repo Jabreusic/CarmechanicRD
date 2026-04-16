@@ -329,18 +329,103 @@ function toNonNegativeNumber(value, fallback = 0) {
   return Number.isFinite(numericValue) && numericValue >= 0 ? numericValue : fallback;
 }
 
+function normalizeQuoteItemType(value = 'pieza') {
+  return value === 'mano_obra' ? 'mano_obra' : 'pieza';
+}
+
+function getQuoteLaborMode() {
+  return document.querySelector('input[name="quoteLaborMode"]:checked')?.value === 'manual_items'
+    ? 'manual_items'
+    : 'global';
+}
+
+function getCurrentQuoteItemsSnapshot() {
+  return piezasActivas.map(index => {
+    const itemType = normalizeQuoteItemType(document.getElementById(`piezaTipo${index}`)?.value || 'pieza');
+    const nombre = document.getElementById(`piezaNombre${index}`)?.value.trim() || '';
+    const cantidad = Number(document.getElementById(`piezaCantidad${index}`)?.value || 0);
+    const costoUnitario = Number(document.getElementById(`piezaCosto${index}`)?.value || 0);
+    const margenRaw = Number(document.getElementById(`piezaMargen${index}`)?.value || 0);
+    const margen = itemType === 'mano_obra' ? 1 : margenRaw;
+    const precioVentaUnitario = costoUnitario * margen;
+
+    return {
+      index,
+      itemType,
+      nombre,
+      cantidad,
+      costoUnitario,
+      margen,
+      precioVentaUnitario,
+      subtotalPiezaVenta: cantidad * precioVentaUnitario
+    };
+  });
+}
+
+function getQuoteTrabajoSummary(items = getCurrentQuoteItemsSnapshot()) {
+  const manualLaborItems = items.filter(item => item.itemType === 'mano_obra' && item.nombre);
+  const diagnosticoTrabajo = document.getElementById('trabajo')?.value.trim() || '';
+  if (getQuoteLaborMode() === 'manual_items') {
+    return manualLaborItems.map(item => item.nombre).join(', ') || diagnosticoTrabajo || 'Mano de obra por ítems';
+  }
+  return diagnosticoTrabajo || manualLaborItems.map(item => item.nombre).join(', ');
+}
+
+function syncQuoteItemRowMode(index) {
+  const row = document.getElementById(`pieza-${index}`);
+  const typeSelect = document.getElementById(`piezaTipo${index}`);
+  const marginInput = document.getElementById(`piezaMargen${index}`);
+  const nameInput = document.getElementById(`piezaNombre${index}`);
+  const itemType = normalizeQuoteItemType(typeSelect?.value || 'pieza');
+
+  if (!row || !typeSelect || !marginInput || !nameInput) {
+    return;
+  }
+
+  row.classList.toggle('is-labor', itemType === 'mano_obra');
+  marginInput.disabled = itemType === 'mano_obra';
+  marginInput.value = itemType === 'mano_obra' ? '1' : (Number(marginInput.value) >= 1 ? marginInput.value : '1.3');
+  nameInput.placeholder = itemType === 'mano_obra' ? 'Concepto de mano de obra' : 'Nombre de la pieza o servicio';
+}
+
+function handleQuoteItemTypeChange(event) {
+  const row = event.target.closest('.quote-item-row');
+  const index = Number(row?.id?.replace('pieza-', '') || 0);
+  if (!index) {
+    return;
+  }
+
+  syncQuoteItemRowMode(index);
+  recalculateCotizacionSilently();
+  updateModuleCompletionIndicators();
+}
+
+function syncQuoteLaborModeUI(options = {}) {
+  const { recalculate = true } = options;
+  const laborMode = getQuoteLaborMode();
+  const globalBlock = document.getElementById('quoteGlobalLaborBlock');
+  const addButton = document.getElementById('agregarPiezaBtn');
+
+  if (globalBlock) {
+    globalBlock.classList.toggle('hidden', laborMode !== 'global');
+  }
+
+  if (addButton) {
+    addButton.textContent = laborMode === 'manual_items' ? '➕ Añadir Línea' : '➕ Añadir Ítem';
+  }
+
+  if (recalculate) {
+    recalculateCotizacionSilently();
+  }
+  updateModuleCompletionIndicators();
+}
+
 function getCurrentQuoteLaborSubtotal() {
   const subtotalGeneral = Number(document.getElementById('pSubtotal')?.textContent || 0);
   const domicilioSubtotal = getQuoteDomicilioAmount();
-  const piezasSubtotal = piezasActivas.reduce((sum, index) => {
-    const cantidad = Number(document.getElementById(`piezaCantidad${index}`)?.value || 0);
-    const costo = Number(document.getElementById(`piezaCosto${index}`)?.value || 0);
-    const margen = Number(document.getElementById(`piezaMargen${index}`)?.value || 0);
-    if (!cantidad || Number.isNaN(cantidad) || Number.isNaN(costo) || Number.isNaN(margen)) {
-      return sum;
-    }
-    return sum + (cantidad * costo * margen);
-  }, 0);
+  const piezasSubtotal = getCurrentQuoteItemsSnapshot()
+    .filter(item => item.itemType !== 'mano_obra')
+    .reduce((sum, item) => sum + Number(item.subtotalPiezaVenta || 0), 0);
 
   return Math.max(subtotalGeneral - piezasSubtotal - domicilioSubtotal, 0);
 }
@@ -548,6 +633,7 @@ function handleServicioDomicilioZonaChange() {
 
 function refreshServicioDomicilioCalculation() {
   updateServicioDomicilioUI(getServicioDomicilioPayload());
+  recalculateCotizacionSilently();
   updateModuleCompletionIndicators();
 }
 
@@ -562,27 +648,13 @@ function getQuoteDomicilioAmount(source = null) {
 }
 
 function getCurrentQuotePiecesSnapshot() {
-  return piezasActivas.map(index => {
-    const nombre = document.getElementById(`piezaNombre${index}`)?.value.trim() || '';
-    const cantidad = Number(document.getElementById(`piezaCantidad${index}`)?.value || 0);
-    const costoUnitario = Number(document.getElementById(`piezaCosto${index}`)?.value || 0);
-    const margen = Number(document.getElementById(`piezaMargen${index}`)?.value || 0);
-    const precioVentaUnitario = costoUnitario * margen;
-    return {
-      index,
-      nombre,
-      cantidad,
-      costoUnitario,
-      margen,
-      precioVentaUnitario,
-      subtotalPiezaVenta: cantidad * precioVentaUnitario
-    };
-  });
+  return getCurrentQuoteItemsSnapshot();
 }
 
 function normalizeCotizacionApprovalConfig(approval = {}, piezas = [], status = 'pendiente') {
   const normalizedStatus = normalizeCommercialStatus(status || approval.tipoAprobacion || 'pendiente');
-  const pieceIndexes = piezas.map((pieza, index) => Number.isFinite(Number(pieza.index)) ? Number(pieza.index) : index);
+  const quotePieces = piezas.filter(pieza => normalizeQuoteItemType(pieza.itemType) !== 'mano_obra');
+  const pieceIndexes = quotePieces.map((pieza, index) => Number.isFinite(Number(pieza.index)) ? Number(pieza.index) : index);
   const approvedIndexes = Array.isArray(approval.piezasAprobadas)
     ? approval.piezasAprobadas.map(item => Number(item)).filter(item => pieceIndexes.includes(item))
     : [];
@@ -611,30 +683,31 @@ function normalizeCotizacionApprovalConfig(approval = {}, piezas = [], status = 
 function getCotizacionApprovedTotals(cotizacion = null) {
   const source = cotizacion || {};
   const piezas = Array.isArray(source.piezas) ? source.piezas : getCurrentQuotePiecesSnapshot();
+  const quotePieces = piezas.filter(pieza => normalizeQuoteItemType(pieza.itemType) !== 'mano_obra');
   const subtotalGeneral = Number(source.subtotal ?? (document.getElementById('pSubtotal')?.textContent || 0));
   const totalGeneral = Number(source.totalFinal ?? (document.getElementById('pTotal')?.textContent || 0));
   const itbisGeneral = Number(source.itbis ?? (document.getElementById('pItbis')?.textContent || 0));
   const domicilioSubtotal = getQuoteDomicilioAmount(source.servicio?.domicilio || null);
   const commercialStatus = normalizeCommercialStatus(source.status || currentCotizacionApprovalConfig?.tipoAprobacion || 'pendiente');
-  const approval = normalizeCotizacionApprovalConfig(source.approval || currentCotizacionApprovalConfig || {}, piezas, commercialStatus);
+  const approval = normalizeCotizacionApprovalConfig(source.approval || currentCotizacionApprovalConfig || {}, quotePieces, commercialStatus);
 
   if (commercialStatus === 'aprobada') {
     return {
       subtotal: subtotalGeneral,
       itbis: itbisGeneral,
       totalFinal: totalGeneral,
-      manoObraSubtotal: Math.max(subtotalGeneral - piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) - domicilioSubtotal, 0),
+      manoObraSubtotal: Math.max(subtotalGeneral - quotePieces.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) - domicilioSubtotal, 0),
       domicilioSubtotal,
-      piezasAprobadas: piezas,
+      piezasAprobadas: quotePieces,
       laborApproved: true,
       isPartial: false
     };
   }
 
-  const piezasAprobadas = piezas.filter((pieza, index) => approval.piezasAprobadas.includes(Number(pieza.index ?? index)));
+  const piezasAprobadas = quotePieces.filter((pieza, index) => approval.piezasAprobadas.includes(Number(pieza.index ?? index)));
   const subtotalPiezas = piezasAprobadas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0);
   const manoObraSubtotal = cotizacion
-    ? Math.max(subtotalGeneral - (Array.isArray(source.piezas) ? source.piezas.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) : subtotalPiezas) - domicilioSubtotal, 0)
+    ? Math.max(subtotalGeneral - (Array.isArray(source.piezas) ? quotePieces.reduce((sum, pieza) => sum + Number(pieza.subtotalPiezaVenta || 0), 0) : subtotalPiezas) - domicilioSubtotal, 0)
     : getCurrentQuoteLaborSubtotal();
   const subtotal = (approval.manoObraAprobada ? manoObraSubtotal + domicilioSubtotal : 0) + subtotalPiezas;
   const itbis = subtotalGeneral > 0 ? (subtotal * (itbisGeneral / subtotalGeneral)) : 0;
@@ -2075,6 +2148,11 @@ function normalizeServicioCotizacionState(data = {}) {
     return;
   }
 
+  document.querySelectorAll('input[name="quoteLaborMode"]').forEach(radio => {
+    radio.checked = radio.value === (data.laborMode || getQuoteLaborMode());
+  });
+  syncQuoteLaborModeUI({ recalculate: false });
+
   const horas = Number(data.horas ?? horasInput.value);
   horasInput.value = Number.isFinite(horas) && horas > 0 ? String(horas) : '2';
 
@@ -2364,6 +2442,56 @@ function hasVehicleContextData() {
 
 function hasSelectedClientAndVehicle() {
   return Boolean(hasLinkedClientAndVehicleSelection() || (hasClientContextData() && hasVehicleContextData()));
+}
+
+function hasQuoteCoreContext() {
+  const trabajo = getQuoteTrabajoSummary();
+  if (getQuoteLaborMode() === 'manual_items') {
+    return Boolean(hasSelectedClientAndVehicle() && trabajo);
+  }
+  return Boolean(hasSelectedClientAndVehicle() && trabajo && hasValidRequiredFields('cotStepServicio'));
+}
+
+function isStandaloneQuoteCandidate() {
+  return Boolean(!currentLoadedEntryOrderId && !isOrdenModuleComplete() && !diagnosticoTieneContenidoRegistrado() && hasQuoteCoreContext());
+}
+
+function getCotizacionSaveContext() {
+  if (!hasSelectedClientAndVehicle()) {
+    return {
+      allowed: false,
+      mode: 'invalid',
+      message: 'Completa la información base del cliente y del vehículo antes de guardar la cotización.'
+    };
+  }
+
+  if (currentLoadedEntryOrderId || isOrdenModuleComplete() || diagnosticoTieneContenidoRegistrado()) {
+    if (!isDiagnosticDataReady()) {
+      return {
+        allowed: false,
+        mode: 'workflow',
+        message: 'Si esta cotización pertenece a una recepción, completa Entrada y Diagnóstico antes de guardarla. Para una cotización directa deja vacíos esos módulos y define el trabajo a cotizar.'
+      };
+    }
+
+    return {
+      allowed: true,
+      mode: 'workflow'
+    };
+  }
+
+  if (!hasQuoteCoreContext()) {
+    return {
+      allowed: false,
+      mode: 'direct',
+      message: 'Para guardar una cotización directa define el trabajo o servicio a cotizar, calcula el total y mantén cliente y vehículo cargados.'
+    };
+  }
+
+  return {
+    allowed: true,
+    mode: 'direct'
+  };
 }
 
 function isEntryDataReady() {
@@ -2679,6 +2807,7 @@ function renderServicioContext() {
   const ordenEntrada = getOrdenEntradaPayload();
   const diagnostico = getDiagnosticoPayload();
   const diagnosticoSummary = getVehicleDiagnosticSummary();
+  const standaloneQuoteContext = Boolean(!currentLoadedEntryOrderId && hasSelectedClientAndVehicle() && !isOrdenModuleComplete());
 
   if (title) {
     title.textContent = cliente && vehiculo
@@ -2693,25 +2822,31 @@ function renderServicioContext() {
   }
 
   if (ordenTitle) {
-    ordenTitle.textContent = isEntryDataReady() ? (ordenEntrada.motivoEntrada || 'Entrada registrada') : 'Entrada pendiente';
+    ordenTitle.textContent = isEntryDataReady()
+      ? (ordenEntrada.motivoEntrada || 'Entrada registrada')
+      : (standaloneQuoteContext ? 'Cotizacion directa sin recepcion' : 'Entrada pendiente');
   }
 
   if (ordenMeta) {
     ordenMeta.textContent = isEntryDataReady()
       ? `${ordenEntrada.modoLlegada || 'N/D'} · ${ordenEntrada.observacionesEntrada || 'Sin observaciones de recepcion'}`
-      : 'Aqui se mostrara el motivo de entrada y datos clave de recepcion.';
+      : (standaloneQuoteContext
+        ? 'No hay una OT activa. Esta cotización se emitirá solo con el contexto comercial del cliente y su vehículo.'
+        : 'Aqui se mostrara el motivo de entrada y datos clave de recepcion.');
   }
 
   if (diagnosticoTitle) {
     diagnosticoTitle.textContent = isDiagnosticDataReady()
       ? (diagnostico.trabajo || 'Trabajo recomendado listo')
-      : 'Diagnostico pendiente';
+      : (standaloneQuoteContext ? (diagnostico.trabajo || 'Trabajo definido para cotizacion directa') : 'Diagnostico pendiente');
   }
 
   if (diagnosticoMeta) {
     diagnosticoMeta.textContent = isDiagnosticDataReady()
       ? `${diagnosticoSummary.meta.label} · Prioridad ${getDiagnosticoPriorityLabel(diagnostico.prioridad)} · ${diagnostico.causaProbable || 'Sin causa probable detallada'}`
-      : 'La cotizacion hereda hallazgos, prioridad y trabajo recomendado del diagnostico.';
+      : (standaloneQuoteContext
+        ? 'No hay diagnóstico consolidado. La cotización funcionará como propuesta comercial previa a la recepción del vehículo.'
+        : 'La cotizacion hereda hallazgos, prioridad y trabajo recomendado del diagnostico.');
   }
 }
 
@@ -5730,7 +5865,8 @@ function isServicioModuleComplete() {
     return Boolean(nombre && !Number.isNaN(cantidad) && cantidad > 0 && !Number.isNaN(costo) && costo >= 0 && !Number.isNaN(margen) && margen >= 1);
   });
   const total = parseFloat(document.getElementById('pTotal')?.textContent || '0');
-  return Boolean(isDiagnosticDataReady() && hasValidRequiredFields('cotStepServicio') && (tienePiezasValidas || total > 0));
+  const saveContext = getCotizacionSaveContext();
+  return Boolean(saveContext.allowed && hasValidRequiredFields('cotStepServicio') && (tienePiezasValidas || total > 0));
 }
 
 function isSeguimientoModuleComplete() {
@@ -5954,6 +6090,7 @@ function buildModuleDraftPayload() {
     ordenEntrada: getOrdenEntradaPayload(),
     diagnostico: diagnosticoPayload,
     servicio: {
+      laborMode: getQuoteLaborMode(),
       servicioCatalogo: document.getElementById('selectServicioCatalogoNuevaCotizacion')?.value || '',
       horas: document.getElementById('horas')?.value || '2',
       dificultad: document.getElementById('dificultad')?.value || '1.2',
@@ -5966,6 +6103,7 @@ function buildModuleDraftPayload() {
       approval: currentCotizacionApprovalConfig,
       items: piezasActivas.map(index => ({
         index,
+        itemType: document.getElementById(`piezaTipo${index}`)?.value || 'pieza',
         nombre: document.getElementById(`piezaNombre${index}`)?.value.trim() || '',
         cantidad: document.getElementById(`piezaCantidad${index}`)?.value || '1',
         costoUnitario: document.getElementById(`piezaCosto${index}`)?.value || '0',
@@ -6118,6 +6256,9 @@ function setupModuleStatusListeners() {
 
   const refreshIndicators = event => {
     if (event.target.closest('.module-tab-content') || event.target.closest('#diagnosticPartModal') || event.target.closest('#diagnosticSummaryModal')) {
+      if (event.target.closest('#cotStepServicio')) {
+        recalculateCotizacionSilently();
+      }
       if (event.target.closest('.seguimiento-quality-card')) {
         updateSeguimientoQualityStatus();
       }
@@ -6577,13 +6718,15 @@ function renderQuoteApprovalPieces(items = getCurrentQuotePiecesSnapshot(), appr
     return;
   }
 
-  if (!items.length) {
+  const quotePieces = items.filter(item => normalizeQuoteItemType(item.itemType) !== 'mano_obra');
+
+  if (!quotePieces.length) {
     piecesList.innerHTML = '<p class="text-tip">No hay piezas registradas en la cotización actual. La aprobación puede centrarse solo en mano de obra.</p>';
     return;
   }
 
   const approvedIndexes = new Set((approvalConfig?.piezasAprobadas || []).map(item => Number(item)));
-  piecesList.innerHTML = items.map((pieza, index) => {
+  piecesList.innerHTML = quotePieces.map((pieza, index) => {
     const pieceIndex = Number(pieza.index ?? index);
     return `
       <div class="quote-approval-piece-item">
@@ -6634,6 +6777,7 @@ function refreshQuoteApprovalTotals() {
   const status = normalizeCommercialStatus(document.getElementById('quoteApprovalStatus')?.value || 'pendiente');
   const pieceIndexes = Array.from(document.querySelectorAll('.quoteApprovalPieceItem:checked')).map(item => Number(item.value));
   const pieces = getCurrentQuotePiecesSnapshot();
+  const quotePieces = pieces.filter(item => normalizeQuoteItemType(item.itemType) !== 'mano_obra');
   const approvalPreview = normalizeCotizacionApprovalConfig({
     ...currentCotizacionApprovalConfig,
     tipoAprobacion: status,
@@ -6660,7 +6804,7 @@ function refreshQuoteApprovalTotals() {
   totalsElement.innerHTML = `
     <strong>${amountLabel}</strong>
     <div class="quote-approval-summary-line"><span>Mano de obra incluida</span><span>${approvalPreview.manoObraAprobada ? 'Sí' : 'No'}</span></div>
-    <div class="quote-approval-summary-line"><span>Piezas aprobadas</span><span>${totals.piezasAprobadas.length} / ${pieces.length}</span></div>
+    <div class="quote-approval-summary-line"><span>Piezas aprobadas</span><span>${totals.piezasAprobadas.length} / ${quotePieces.length}</span></div>
     <div class="quote-approval-summary-line"><span>Subtotal</span><span>RD$ ${Number(totals.subtotal || 0).toFixed(2)}</span></div>
     <div class="quote-approval-summary-line"><span>Impuesto</span><span>RD$ ${Number(totals.itbis || 0).toFixed(2)}</span></div>
     <div class="quote-approval-summary-line"><span>Total</span><span>RD$ ${Number(totals.totalFinal || 0).toFixed(2)}</span></div>
@@ -9177,31 +9321,42 @@ function agregarPieza(piezaData = null) {
   const container = document.getElementById('piezasContainer');
   const currentIndex = piezasCounter += 1;
 
+  const itemTypeVal = normalizeQuoteItemType(piezaData ? piezaData.itemType : 'pieza');
   const nombreVal = piezaData ? piezaData.nombre : '';
   const cantidadVal = piezaData ? piezaData.cantidad : '1';
   const costoVal = piezaData ? piezaData.costoUnitario : '0';
-  const margenVal = piezaData ? piezaData.margen : '1.3';
+  const margenVal = itemTypeVal === 'mano_obra' ? '1' : (piezaData ? piezaData.margen : '1.3');
 
   const html = `
-    <div id="pieza-${currentIndex}">
-      <label for="piezaNombre${currentIndex}">Nombre de la pieza</label>
-      <input type="text" id="piezaNombre${currentIndex}" value="${nombreVal}" required>
-      <span class="error-message">Este campo es obligatorio.</span>
-      <label for="piezaCantidad${currentIndex}">Cantidad</label>
-      <input type="number" id="piezaCantidad${currentIndex}" value="${cantidadVal}" min="1" required>
-      <span class="error-message">Ingrese un número positivo.</span>
-      <label for="piezaCosto${currentIndex}">Costo unitario (RD$)</label>
-      <input type="number" id="piezaCosto${currentIndex}" value="${costoVal}" min="0" step="0.01" required>
-      <span class="error-message">Ingrese un número positivo o cero.</span>
-      <label for="piezaMargen${currentIndex}">Margen de Ganancia (Ej: 1.3 para 30%)</label>
-      <input type="number" id="piezaMargen${currentIndex}" value="${margenVal}" min="1.0" step="0.01" required>
-      <span class="error-message">Margen debe ser 1.0 o mayor.</span>
-      <button type="button" class="btn-danger" data-action="cotizacion-eliminar-pieza" data-pieza-index="${currentIndex}">Eliminar</button>
-    </div>
+    <tr id="pieza-${currentIndex}" class="quote-item-row">
+      <td>
+        <select id="piezaTipo${currentIndex}" aria-label="Tipo de ítem" data-change-call="handleQuoteItemTypeChange" data-change-include-event="true">
+          <option value="pieza" ${itemTypeVal === 'pieza' ? 'selected' : ''}>Pieza</option>
+          <option value="mano_obra" ${itemTypeVal === 'mano_obra' ? 'selected' : ''}>Mano de obra</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" id="piezaNombre${currentIndex}" value="${nombreVal}" placeholder="Nombre de la pieza o servicio" aria-label="Nombre del ítem" required>
+      </td>
+      <td>
+        <input type="number" id="piezaCantidad${currentIndex}" value="${cantidadVal}" min="1" aria-label="Cantidad" required>
+      </td>
+      <td>
+        <input type="number" id="piezaCosto${currentIndex}" value="${costoVal}" min="0" step="0.01" aria-label="Costo unitario" required>
+      </td>
+      <td>
+        <input type="number" id="piezaMargen${currentIndex}" value="${margenVal}" min="1.0" step="0.01" aria-label="Margen" required>
+      </td>
+      <td class="quote-item-actions-cell">
+        <button type="button" class="btn-danger quote-item-delete-btn" data-action="cotizacion-eliminar-pieza" data-pieza-index="${currentIndex}">Eliminar</button>
+      </td>
+    </tr>
   `;
   container.insertAdjacentHTML('beforeend', html);
   piezasActivas.push(currentIndex);
+  syncQuoteItemRowMode(currentIndex);
   setupValidationListeners();
+  recalculateCotizacionSilently();
   updateModuleCompletionIndicators();
 }
 
@@ -9300,6 +9455,10 @@ function cargarServicioCatalogoNuevaCotizacion() {
   const nombreSeleccionado = document.getElementById('selectServicioCatalogoNuevaCotizacion').value;
   const servicio = serviciosCatalogo.find(s => s.nombre === nombreSeleccionado);
   if (servicio) {
+    document.querySelectorAll('input[name="quoteLaborMode"]').forEach(radio => {
+      radio.checked = radio.value === 'global';
+    });
+    syncQuoteLaborModeUI();
     document.getElementById('trabajo').value = servicio.nombre;
     normalizeServicioCotizacionState(servicio);
     alert(`Servicio "${servicio.nombre}" cargado en la cotización.`);
@@ -9432,30 +9591,45 @@ function eliminarPiezaCatalogo() {
   }
 }
 
-function calcularTotal() {
+function calcularTotal(options = {}) {
+  const { silent = false } = options;
+  const laborMode = getQuoteLaborMode();
+  const quoteItems = getCurrentQuoteItemsSnapshot();
+  const laborItems = quoteItems.filter(item => item.itemType === 'mano_obra');
+
   if (!isClienteModuleComplete() || !isVehiculoModuleComplete()) {
-    alert('Debes completar datos válidos de cliente y vehículo antes de calcular la cotización.');
-    openTab(null, 'cotStepCliente', null, true);
+    if (!silent) {
+      alert('Debes completar datos válidos de cliente y vehículo antes de calcular la cotización.');
+      openTab(null, 'cotStepCliente', null, true);
+    }
     return false;
   }
 
-  if (!isEntryDataReady()) {
-    alert('La cotizacion depende de una Orden de Entrada completa. Completa recepcion antes de calcular.');
-    openTab(null, 'cotStepOrden', null, true);
+  const requiresOperationalFlow = Boolean(currentLoadedEntryOrderId || isOrdenModuleComplete() || diagnosticoTieneContenidoRegistrado());
+
+  if (requiresOperationalFlow && !isEntryDataReady()) {
+    if (!silent) {
+      alert('La cotizacion depende de una Orden de Entrada completa. Completa recepcion antes de calcular.');
+      openTab(null, 'cotStepOrden', null, true);
+    }
     return false;
   }
 
-  if (!isDiagnosticoModuleComplete()) {
-    alert('Completa el diagnostico antes de calcular la cotizacion. Debes registrar el trabajo recomendado y suficiente detalle tecnico.');
-    openTab(null, 'cotStepDiagnostico', null, true);
+  if (requiresOperationalFlow && !isDiagnosticoModuleComplete()) {
+    if (!silent) {
+      alert('Completa el diagnostico antes de calcular la cotizacion. Debes registrar el trabajo recomendado y suficiente detalle tecnico.');
+      openTab(null, 'cotStepDiagnostico', null, true);
+    }
     return false;
   }
 
-  normalizeServicioCotizacionState();
+  normalizeServicioCotizacionState({ laborMode });
 
-  if (!hasValidRequiredFields('cotStepServicio')) {
-    alert('Completa horas estimadas, dificultad y experiencia antes de calcular la cotizacion.');
-    openTab(null, 'cotStepServicio', null, true);
+  if (laborMode === 'global' && !hasValidRequiredFields('cotStepServicio')) {
+    if (!silent) {
+      alert('Completa horas estimadas, dificultad y experiencia antes de calcular la cotizacion.');
+      openTab(null, 'cotStepServicio', null, true);
+    }
     return false;
   }
 
@@ -9467,13 +9641,19 @@ function calcularTotal() {
   const aplicarItbis = configuracionGeneral.aplicarItbis;
   const precioBaseHora = Number(configuracionGeneral.precioBaseHora) || DEFAULT_PRECIO_BASE_HORA;
   const itbisRate = (Number(configuracionGeneral.porcentajeItbis) || DEFAULT_ITBIS_PERCENT) / 100;
-  const precioManoObra = horas * precioBaseHora * dificultadVal * experienciaVal;
+  const precioManoObra = laborMode === 'manual_items'
+    ? laborItems.reduce((sum, item) => sum + Number(item.subtotalPiezaVenta || 0), 0)
+    : horas * precioBaseHora * dificultadVal * experienciaVal;
   let totalPiezasVenta = 0;
   const piezasPrintBody = document.getElementById('piezasPrint');
   piezasPrintBody.innerHTML = '';
 
-  document.getElementById('pHorasServicio').textContent = `${horas} hrs`;
-  document.getElementById('pPrecioManoObraUnit').textContent = `RD$ ${(precioManoObra / horas).toFixed(2)}`;
+  document.getElementById('pHorasServicio').textContent = laborMode === 'manual_items'
+    ? `${laborItems.length} item(s)`
+    : `${horas} hrs`;
+  document.getElementById('pPrecioManoObraUnit').textContent = laborMode === 'manual_items'
+    ? 'Por ítems'
+    : `RD$ ${(precioManoObra / horas).toFixed(2)}`;
   document.getElementById('pPrecioServicio').textContent = `RD$ ${precioManoObra.toFixed(2)}`;
 
   let allPiecesValid = true;
@@ -9482,19 +9662,23 @@ function calcularTotal() {
     const cantidadInput = document.getElementById(`piezaCantidad${i}`);
     const costoInput = document.getElementById(`piezaCosto${i}`);
     const margenInput = document.getElementById(`piezaMargen${i}`);
+    const typeInput = document.getElementById(`piezaTipo${i}`);
 
-    if (!nombreInput || !cantidadInput || !costoInput || !margenInput) {
+    if (!nombreInput || !cantidadInput || !costoInput || !margenInput || !typeInput) {
       allPiecesValid = false;
       return;
     }
 
+    const itemType = normalizeQuoteItemType(typeInput.value);
     const nombre = nombreInput.value.trim();
     const cantidad = parseFloat(cantidadInput.value);
     const costoUnitario = parseFloat(costoInput.value);
-    const margen = parseFloat(margenInput.value);
+    const margen = itemType === 'mano_obra' ? 1 : parseFloat(margenInput.value);
 
     if (!nombre || Number.isNaN(cantidad) || cantidad <= 0 || Number.isNaN(costoUnitario) || costoUnitario < 0 || Number.isNaN(margen) || margen < 1) {
-      alert(`Por favor, ingresa valores válidos (nombre, cantidad > 0, costo >= 0, margen >= 1.0) para la pieza "${nombre || 'sin nombre'}".`);
+      if (!silent) {
+        alert(`Por favor, ingresa valores válidos (nombre, cantidad > 0, costo >= 0, margen >= 1.0) para la pieza "${nombre || 'sin nombre'}".`);
+      }
       allPiecesValid = false;
       return;
     }
@@ -9502,7 +9686,9 @@ function calcularTotal() {
     const precioVentaUnitario = costoUnitario * margen;
     const subtotalPiezaVenta = cantidad * precioVentaUnitario;
 
-    totalPiezasVenta += subtotalPiezaVenta;
+    if (itemType !== 'mano_obra') {
+      totalPiezasVenta += subtotalPiezaVenta;
+    }
 
     const fila = `<tr>
       <td>${nombre}</td>
@@ -9554,7 +9740,7 @@ function calcularTotal() {
     pNombreEmpresaContainer.classList.add('hidden');
   }
 
-  document.getElementById('pTrabajo').textContent = document.getElementById('trabajo').value.trim();
+  document.getElementById('pTrabajo').textContent = getQuoteTrabajoSummary(quoteItems);
   document.getElementById('pVehiculoResumen').textContent = formatPrintableVehicleSummary(
     document.getElementById('vehiculoModelo').value.trim(),
     document.getElementById('vehiculoAnio').value.trim(),
@@ -9609,27 +9795,37 @@ function calcularTotal() {
   return true;
 }
 
+function recalculateCotizacionSilently() {
+  return calcularTotal({ silent: true });
+}
+
 function guardarCotizacion() {
   if (!calcularTotal()) {
-    alert('No se puede guardar la cotización. Por favor, corrige los errores.');
+    notifyValidation('Cotización inválida', 'No se puede guardar la cotización mientras existan errores en el cálculo o en las piezas.', { kicker: 'Cotización' });
     return;
   }
 
-  if (!isDiagnosticDataReady()) {
-    alert('La cotizacion solo se puede guardar cuando Cliente/Vehiculo, Entrada y Diagnostico esten completos.');
+  const saveContext = getCotizacionSaveContext();
+  if (!saveContext.allowed) {
+    notifyValidation('No se puede guardar la cotización', saveContext.message, { kicker: 'Cotización', autoHideMs: 6200 });
+    if (!hasSelectedClientAndVehicle()) {
+      openTab(null, 'cotStepCliente', null, true);
+    } else if (saveContext.mode === 'workflow') {
+      openCotStep(null, 'cotStepDiagnostico');
+    }
     return;
   }
 
-  if (!currentLoadedEntryOrderId) {
+  if (saveContext.mode === 'workflow' && !currentLoadedEntryOrderId) {
     const ordenGuardada = guardarOrdenEntrada(false);
     if (!ordenGuardada) {
-      alert('No se pudo crear la orden de entrada base para guardar la cotización.');
+      notifyError('OT no disponible', 'No se pudo crear la orden de entrada base para guardar la cotización.', { kicker: 'Cotización' });
       return;
     }
   }
 
-  if (!guardarDiagnostico({ silent: true })) {
-    alert('No se pudo consolidar el diagnóstico antes de guardar la cotización.');
+  if (saveContext.mode === 'workflow' && !guardarDiagnostico({ silent: true })) {
+    notifyError('Diagnóstico no consolidado', 'No se pudo consolidar el diagnóstico antes de guardar la cotización.', { kicker: 'Cotización' });
     return;
   }
 
@@ -9648,14 +9844,16 @@ function guardarCotizacion() {
   currentCotizacionApprovalConfig = normalizeCotizacionApprovalConfig(currentCotizacionApprovalConfig, getCurrentQuotePiecesSnapshot(), currentStatus);
   const existingCotizacion = isEditingExistingCotizacion ? cotizacionesGuardadas[existingCotizacionIndex] : null;
   const cotizacionId = isEditingExistingCotizacion ? cotizacionesGuardadas[existingCotizacionIndex].id : generarEntidadId('COT');
-  const normalizedDiagnostico = normalizeDiagnosticoRecord({
-    ...(existingCotizacion?.diagnostico || {}),
-    ...diagnosticoPayload
-  }, {
-    ordenEntradaId: currentLoadedEntryOrderId,
-    cotizacionId,
-    useCurrentFallback: true
-  });
+  const normalizedDiagnostico = diagnosticoTieneContenidoRegistrado() || existingCotizacion?.diagnostico
+    ? normalizeDiagnosticoRecord({
+      ...(existingCotizacion?.diagnostico || {}),
+      ...diagnosticoPayload
+    }, {
+      ordenEntradaId: currentLoadedEntryOrderId,
+      cotizacionId,
+      useCurrentFallback: true
+    })
+    : null;
   const normalizedSalida = normalizeSalidaRecord({
     ...(existingCotizacion?.salida || {}),
     ...getSalidaPayload()
@@ -9668,7 +9866,7 @@ function guardarCotizacion() {
     ...existingCotizacion,
     id: cotizacionId,
     fecha: document.getElementById('fecha').value,
-    ordenEntradaId: currentLoadedEntryOrderId,
+    ordenEntradaId: saveContext.mode === 'workflow' ? currentLoadedEntryOrderId : '',
     cliente: {
       clientId: currentLoadedClientId,
       tipoIdentificacion: document.getElementById('tipoIdentificacion').value,
@@ -9691,13 +9889,14 @@ function guardarCotizacion() {
       color: document.getElementById('vehiculoColor').value.trim()
     },
     servicio: {
-      trabajo: document.getElementById('trabajo').value.trim(),
+      laborMode: getQuoteLaborMode(),
+      trabajo: getQuoteTrabajoSummary(),
       horas: parseFloat(document.getElementById('horas').value),
       dificultad: parseFloat(document.getElementById('dificultad').value),
       experiencia: parseFloat(document.getElementById('experiencia').value),
       domicilio: getServicioDomicilioPayload()
     },
-    ordenEntrada: getOrdenEntradaPayload(),
+    ordenEntrada: saveContext.mode === 'workflow' ? getOrdenEntradaPayload() : {},
     diagnostico: normalizedDiagnostico,
     seguimiento: {
       estatusTrabajo: normalizeSeguimientoStatus(document.getElementById('estatusTrabajo').value),
@@ -9710,15 +9909,17 @@ function guardarCotizacion() {
     },
     salida: normalizedSalida,
     piezas: piezasActivas.map(i => {
+      const itemType = normalizeQuoteItemType(document.getElementById(`piezaTipo${i}`)?.value || 'pieza');
       const nombre = document.getElementById(`piezaNombre${i}`).value.trim();
       const cantidad = parseFloat(document.getElementById(`piezaCantidad${i}`).value);
       const costoUnitario = parseFloat(document.getElementById(`piezaCosto${i}`).value);
-      const margen = parseFloat(document.getElementById(`piezaMargen${i}`).value);
+      const margen = itemType === 'mano_obra' ? 1 : parseFloat(document.getElementById(`piezaMargen${i}`).value);
       const precioVentaUnitario = costoUnitario * margen;
       const subtotalPiezaVenta = cantidad * precioVentaUnitario;
 
       return {
         index: i,
+        itemType,
         nombre,
         cantidad,
         costoUnitario,
@@ -9763,8 +9964,10 @@ function guardarCotizacion() {
   actualizarListaCotizacionesHistorial();
   updateDashboard();
   showAppNotice({
-    title: isEditingExistingCotizacion ? 'Cotización actualizada' : 'Cotización guardada',
-    message: `Expediente ${cotizacion.id} listo. Total de cotizaciones guardadas: ${cotizacionesGuardadas.length}.`,
+    title: isEditingExistingCotizacion ? 'Cotización actualizada' : (saveContext.mode === 'direct' ? 'Cotización directa guardada' : 'Cotización guardada'),
+    message: saveContext.mode === 'direct'
+      ? `${cotizacion.id} quedó lista sin orden de entrada asociada. Total de cotizaciones guardadas: ${cotizacionesGuardadas.length}.`
+      : `Expediente ${cotizacion.id} listo. Total de cotizaciones guardadas: ${cotizacionesGuardadas.length}.`,
     kicker: 'Cotización'
   });
 }
